@@ -28,7 +28,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.fadcam"
+        applicationId = "com.sportbestcam"
         minSdk = 24
         targetSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

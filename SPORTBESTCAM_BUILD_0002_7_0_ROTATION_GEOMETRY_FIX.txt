@@ -1,0 +1,41 @@
+SportBestCam Build 0002.7.0 - Rotation & Recording Geometry Fix
+
+Goal
+- Stop preview/video stretching when the phone rotates during recording.
+- Preserve one valid MP4 geometry for the full recording session.
+- Allow the live preview/UI to follow the phone independently.
+
+Implementation
+- Recording orientation is locked at REC START.
+- Recording display rotation is locked separately from current preview rotation.
+- Encoder width/height and recording transform never change mid-file.
+- Live preview gets its own orientation and actual Surface.ROTATION_0/90/180/270.
+- Fixes the old bug where Configuration.ORIENTATION_PORTRAIT/LANDSCAPE (1/2)
+  was incorrectly sent as if it were Surface rotation.
+- Preview aspect ratio swaps automatically when current screen orientation differs
+  from the locked recording orientation; no stretching/squeezing.
+- Existing optional zoom-fill/dim background continues to work around the correctly
+  proportioned foreground preview.
+- Rotation is also probed during camera frames, so landscape <-> reverse-landscape
+  and portrait <-> reverse-portrait are detected even when Android does not emit a
+  new Configuration.orientation.
+- Same preview-rotation update is forwarded to dual-camera mode.
+
+Expected behaviour
+1. Start REC portrait -> rotate wide:
+   live UI/preview becomes wide and correctly proportioned; saved MP4 stays portrait.
+2. Start REC wide -> rotate portrait:
+   live UI/preview becomes portrait and correctly proportioned; saved MP4 stays wide.
+3. Landscape -> reverse landscape:
+   preview rotation is refreshed without changing the encoder geometry.
+4. Rotate while video is PAUSED:
+   preview updates; RESUME continues the same original MP4 geometry.
+5. STOP in a different orientation -> next REC:
+   sync at the next START uses the phone's current orientation for the new file.
+
+Compatibility
+- No Media3/muxer format changes.
+- No recording stop/start is performed during rotation.
+- No automatic segment split is introduced.
+- Camera, audio, scoring, Sport Mode, Simple Video, fullscreen, FadRec, streaming,
+  Remote, storage and existing 0002.6.4 localization logic are retained.

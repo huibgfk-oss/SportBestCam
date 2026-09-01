@@ -1,0 +1,4 @@
+SportBestCam Build 0002.6.2a Compile Fix
+- Fixes Java compile error 'integer number too large' in HomeFragment.java.
+- Changes 0xFFE8FFFFFF to valid ARGB int 0xE8FFFFFF.
+- No UI, recording, timer, screenshot, HUD, rebrand or compatibility behavior changes.

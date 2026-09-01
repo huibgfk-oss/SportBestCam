@@ -1,0 +1,16 @@
+SportBestCam Build 0002.7.0a Compile Fix
+
+Fixes all 69 compile errors reported in logs_89572810442.zip.
+
+Root cause:
+- SportSetupWizard.java uses R.string.* resources introduced by the localization pass.
+- The class is in package com.fadcam.handball, therefore it needs an explicit
+  import com.fadcam.R;
+- Without that import Java reports "package R does not exist" on every resource use.
+- The reported setText/setTitle ambiguity errors are cascading errors caused by
+  the unresolved R references.
+
+Change:
+- Adds exactly: import com.fadcam.R;
+
+No camera, rotation, recording, UI, timer, scoring, localization or Media3 logic changed.

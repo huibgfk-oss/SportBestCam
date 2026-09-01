@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/player_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:controller_layout_id="@layout/exo_styled_player_control_view"
+        app:use_controller="true"
+        app:show_timeout="3000"
+        app:show_buffering="when_playing"
+        app:resize_mode="fit"
+        app:bar_height="4dp"
+        app:bar_gravity="bottom"
+        app:touch_target_height="26dp"
+        />
+
+    <ImageButton
+        android:id="@+id/back_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_close"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:padding="16dp"
+        android:layout_margin="16dp"
+        app:tint="@android:color/white" />
+    
+    <!-- Info button (top right) -->
+    <ImageButton
+        android:id="@+id/info_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:src="@drawable/ic_info"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:padding="16dp"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/player_info_title"
+        app:tint="@android:color/white" />
+        
+    <!-- Reset zoom button (appears when video is zoomed) -->
+    <ImageButton
+        android:id="@+id/reset_zoom_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_zoom_out_map"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:padding="12dp"
+        android:layout_margin="16dp"
+        android:layout_gravity="top|end"
+        android:visibility="gone"
+        android:contentDescription="@string/desc_reset_zoom"
+        app:tint="@android:color/white" />
+
+    <!-- Overlay indicator for quick 2x playback (appears while long-press is active) -->
+    <TextView
+        android:id="@+id/quick_speed_overlay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="72dp"
+        android:background="@drawable/quick_speed_bg"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone"
+        android:importantForAccessibility="no"
+        android:focusable="false"
+        android:focusableInTouchMode="false" />
+
+</FrameLayout>

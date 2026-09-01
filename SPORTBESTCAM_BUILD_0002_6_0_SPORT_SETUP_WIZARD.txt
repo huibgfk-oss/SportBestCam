@@ -1,0 +1,56 @@
+SportBestCam Build 0002.6.0 - Sport Setup Wizard
+
+Built directly on 0002.5.5. Recording/camera/Media3/storage/rotation/FadRec/streaming code is not modified.
+
+NEW PRE-MATCH WIZARD
+1. Sport selection with presets:
+   Handbal, Fotbal, Futsal, Baschet, Volei, Tenis, Padel, Hochei,
+   Baseball, Cricket, Box and Custom.
+2. Team setup:
+   Echipa A / Echipa B, team colours and live scoreboard preview.
+3. Rules:
+   periods/rounds, minutes/period and Auto Goal.
+4. Confirmation:
+   current-match summary, new-match summary and final scoreboard preview.
+
+SCOREBOARD STYLES
+- Compact TV (default)
+- Corner
+- Minimal
+The selected style is applied to the live Sport Mode HUD, Fullscreen HUD and
+the text scoreboard burned into recorded video.
+Team colours tint the live score boxes.
+
+MATCH UX
+- Existing Setari meci now offers:
+  Echipe, Stil scoreboard, Rezumat meci, Auto Goal, calibration and guided New Match.
+- New Match is blocked while video recording is active to prevent accidental resets.
+- Starting a new match resets score/time/period only.
+- Goal calibration is intentionally preserved.
+- Existing team editor remains available for mid-match correction.
+- Post-match/current-match summary is available from Setari meci and is also shown
+  in the final wizard step before reset.
+
+PRESERVED
+- Unified Sport Mode controls and tap/hold scoring.
+- Timer/video synchronisation.
+- Auto Goal prompt, snooze and disable behaviour.
+- Fullscreen preview and HUD collision fixes.
+- Preview fill-background ON/OFF setting.
+- Camera mirror/mic/recording controls.
+- Legacy FadCam quick actions remain removed from Sport Mode.
+- Media3, RecordingService, camera engine, rotation/wide, storage/gallery,
+  FadRec, editor, remote/streaming and compatibility fixes are untouched.
+- SportBestCam branding/icon/APK name remains unchanged.
+
+INTENTIONALLY SEPARATE
+Remote scoring, new streaming-provider UI, sponsor logos and break graphics are
+not changed in this build. They were explicitly separated from the 0002.6.0
+wizard work so existing remote/streaming functionality cannot regress.
+
+VALIDATION
+- Existing Android layout XML parses successfully.
+- javac syntax scan found no Java syntax/parser errors in the changed Java files.
+- Full Gradle compile could not run in the offline build environment because the
+  Gradle wrapper distribution was not locally cached. GitHub Actions remains the
+  final Android compile verification.

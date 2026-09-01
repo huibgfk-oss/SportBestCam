@@ -1,0 +1,19 @@
+SportBestCam Build 0002.5.4 Preview / Teams UX
+
+- Adds hidden Camera Tools option:
+  "Fundal umplere preview: ON/OFF".
+- ON keeps the historical zoom-fill + dim background behind the sharp camera frame.
+- OFF removes the duplicated enlarged/dimmed background and uses clean black
+  letterbox/pillarbox bars.
+- The setting affects LIVE PREVIEW ONLY. Recorded video is never changed.
+- Default is ON to preserve current behaviour after update.
+
+Teams dialog:
+- Replaces the confusing 4 edit fields with only 2:
+  "Nume Echipa A" and "Nume Echipa B".
+- Short/compact team labels are generated automatically.
+- Landscape shows the two team fields side by side.
+- Portrait shows them vertically.
+- Existing team/scoring/video metadata functionality is preserved.
+
+All Build 0002.5.3a fixes and previous compatibility/rebrand fixes remain unchanged.

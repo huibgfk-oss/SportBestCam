@@ -1,0 +1,51 @@
+<resources>
+    <!-- Base application theme. -->
+    <style name="Base.Theme.FadCam" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your dark theme here. -->
+        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <item name="android:fontFamily">@font/ubuntu_regular</item>
+<!--        the color for statusbar at top-->
+        <item name="android:statusBarColor">@color/gray</item>
+        <item name="colorTopBar">@color/gray</item>
+        <item name="colorBottomNav">@color/gray</item>
+        <item name="colorHeading">@color/colorHeading</item>
+        <item name="colorButton">@color/colorButton</item>
+        <item name="colorToggle">@color/colorToggle</item>
+        <item name="colorSwitchTrack">@color/gray</item>
+        <item name="colorDialog">@color/colorDialog</item>
+        <item name="colorStatusBar">@color/colorStatusBar</item>
+        <!-- Picker gradient colors - subtle gray gradient for night themes -->
+        <item name="pickerGradientStart">@color/black</item>
+        <item name="pickerGradientMid">#FF2A2A2A</item>
+        <item name="pickerGradientEnd">#FF404040</item>
+        <!-- Picker text colors -->
+        <item name="pickerTextPrimary">@android:color/white</item>
+        <item name="pickerTextSecondary">#999999</item>
+        <!-- Section header color - use subtle gray for night theme -->
+        <item name="sectionHeaderColor">#888888</item>
+        <item name="homeRailBgStart">#121417</item>
+        <item name="homeRailBgEnd">#121417</item>
+        <item name="homeRailCardSurface">#191D22</item>
+        <item name="homeRailCardBorder">#252A31</item>
+        <item name="homeRailCardStroke">#252A31</item>
+        <item name="homeRailTileSurface">#23282F</item>
+        <item name="homeRailSegmentedSurface">#191D22</item>
+        <item name="homeRailSegmentedBorder">#2C3138</item>
+        <item name="homeRailSegmentActive">#F44336</item>
+        <item name="homeRailSegmentActiveText">#FFF7F8</item>
+        <item name="homeRailTextPrimary">#F3F4F6</item>
+        <item name="homeRailTextSecondary">#B4B8BE</item>
+        <item name="homeRailAccent">#BFCBDA</item>
+        
+        <!-- Picker component overrides for better contrast in Faded Night theme ONLY -->
+        <item name="pickerButtonBackground">@color/picker_button_background</item>
+        <item name="pickerButtonText">@color/picker_button_text</item>
+        <item name="pickerIconTint">@color/picker_icon_tint</item>
+        <item name="pickerSliderActive">@color/picker_slider_active</item>
+        <item name="pickerSliderInactive">@color/picker_slider_inactive</item>
+    
+        <item name="android:colorBackground">@color/black</item>
+        <item name="backgroundColor">@color/black</item>
+        <item name="android:windowBackground">@color/black</item>
+        <item name="android:navigationBarColor">@color/black</item></style>
+</resources>

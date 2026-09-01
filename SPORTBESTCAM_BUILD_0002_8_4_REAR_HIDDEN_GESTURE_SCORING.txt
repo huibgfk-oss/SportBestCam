@@ -1,0 +1,59 @@
+SportBestCam Build 0002.8.4 — Dual + Rear Hidden-Zone Gesture Scoring
+Date: 2026-08-27
+
+BASE
+- Apply on top of 0002.8.2 Front Camera Gesture Scoring.
+- Does not remove the front-camera / concurrent-camera method.
+- Does not modify public-storage migration or gallery logic.
+
+GESTURE SOURCES
+1. Front camera (dual camera)
+   - Existing 0002.8.2 method.
+   - Hidden front-camera analysis while rear camera records.
+   - Requires official simultaneous front + rear support.
+   - No extra crop on the recorded video.
+
+2. Rear camera hidden zones
+   - Fallback for phones without simultaneous front + rear camera support.
+   - Gesture analysis reads the live rear preview.
+   - HOME = extreme left edge.
+   - AWAY = extreme right edge.
+   - 1 finger = +1; 2 fingers = -1.
+   - Existing hold/rearm/vibration behavior is retained.
+   - Encoder center-crops only in this mode.
+   - Live preview remains uncropped so the operator can see/use the edge zones.
+   - Crop fraction: 12.5% on each edge (center 75% retained).
+   - Detector accepts gestures only inside a slightly smaller safe edge band.
+
+NO-CROP GUARANTEE
+- Gesture Scoring OFF: no additional crop.
+- Front-camera gesture source: no additional crop.
+- Rear hidden-zone source + Gesture Scoring ON at REC START: crop enabled for that MP4.
+- Source/master toggle are locked in Match Settings while a video is recording,
+  so geometry cannot change halfway through a file.
+
+DUAL/PIP SAFETY
+- Existing dual-camera/PiP renderer path is preserved.
+- Rear hidden crop is explicitly not applied while PiP rendering is enabled.
+
+FRONT UNSUPPORTED BEHAVIOR
+- Unsupported front-camera mode no longer turns Gesture Scoring master preference OFF.
+- It displays a message recommending Rear hidden zone, so the user can select fallback.
+
+FILES
+- Full replacement:
+  app/src/main/java/com/fadcam/handball/GestureScoringEngine.java
+  app/src/main/res/values/sbc_gesture_front_strings.xml
+  app/src/main/res/values-ro/sbc_gesture_front_strings.xml
+  app/src/main/res/values/sbc_gesture_source_strings.xml
+  app/src/main/res/values-ro/sbc_gesture_source_strings.xml
+
+- git apply patch:
+  HandballMatchController.java
+  GLRecordingPipeline.java
+  GLWatermarkRenderer.java
+  RecordingService.java
+
+IMPORTANT
+- This build does not implement the pending legacy-gallery recursive scan /
+  selectable save-location change. Keep that as the separate storage build.

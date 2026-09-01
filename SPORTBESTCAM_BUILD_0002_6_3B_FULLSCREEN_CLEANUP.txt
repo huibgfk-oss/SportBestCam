@@ -1,0 +1,9 @@
+SportBestCam Build 0002.6.3b Fullscreen Cleanup
+
+- Removes the large native SportBestCam Preview title bar.
+- Moves Back into the left side of the Sport scoreboard rail.
+- Keeps the central scoreboard visually balanced with an equal spacer on the right.
+- Moves Focus ON/OFF directly above Shot.
+- The scoreboard is now the only top rail and respects current Android safe-area insets.
+- Safe in normal and reverse landscape.
+- No camera, focus, shot, score, timer, recording or Media3 logic changed.

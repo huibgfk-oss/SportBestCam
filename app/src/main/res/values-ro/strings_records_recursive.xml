@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="records_recursive_group_title">Căutare în stocare</string>
+    <string name="records_recursive_choose_folder_title">Alege folderul pentru căutare</string>
+    <string name="records_recursive_choose_folder_none">Nu este ales un folder explicit pentru căutare</string>
+    <string name="records_recursive_choose_folder_selected">Selectat: %1$s</string>
+    <string name="records_recursive_search_title">Refresh și căutare recursivă – toate folderele</string>
+    <string name="records_recursive_search_subtitle">Caută în stocarea accesibilă și direct în folderul ales</string>
+    <string name="records_recursive_search_helper">Pentru filmările vechi pe care Android nu le expune prin MediaStore, alege mai întâi folderul exact. Folderul ales este scanat direct prin SAF și nu schimbă locația de salvare.</string>
+    <string name="records_recursive_search_progress_title">Se caută în toate folderele…</string>
+    <string name="records_recursive_search_progress_message">Rulează o căutare recursivă completă. Pe o memorie mare poate dura puțin mai mult.</string>
+    <string name="records_recursive_search_result_title">Căutare recursivă terminată</string>
+    <string name="records_recursive_search_result_message">Video în Records: %1$d\nImagini în Records: %2$d\nTotal indexate: %3$d\nIndexate anterior: %4$d\nGăsite în folderul ales: %5$d\nDeja adăugate: %6$d\nPregătite pentru adăugare: %7$d\nDurata căutării: %8$d ms</string>
+    <string name="records_recursive_search_error_title">Căutarea recursivă a eșuat</string>
+    <string name="records_recursive_search_error_message">Căutarea completă în stocare nu a putut fi terminată.\n\n%1$s</string>
+    <string name="records_default_access_title">Permite accesul la Movies/SportBestCam</string>
+    <string name="records_default_access_not_granted">Permisiunea nu a fost acordată încă</string>
+    <string name="records_default_access_granted">Acces persistent la folder acordat</string>
+    <string name="records_default_access_error_title">Accesul la folder a eșuat</string>
+    <string name="records_default_access_error_message">Android nu a acordat acces persistent pentru citire. Alege Movies/SportBestCam și confirmă „Folosește acest dosar”.</string>
+    <string name="records_recursive_review_found">Vezi fișierele găsite</string>
+    <string name="records_recursive_add_all">Adaugă toate</string>
+    <string name="records_recursive_add_selected">Adaugă selectate</string>
+    <string name="records_recursive_found_items_title">Fișiere găsite care nu sunt încă în Records</string>
+    <string name="records_recursive_add_complete_title">Adăugate în Records</string>
+    <string name="records_recursive_add_complete_message">Au fost adăugate %1$d fișiere în Records.</string>
+    <string name="records_recursive_unknown_name">Fișier fără nume</string>
+</resources>

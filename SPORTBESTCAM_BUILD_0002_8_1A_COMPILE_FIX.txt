@@ -1,0 +1,12 @@
+SportBestCam Build 0002.8.1a Compile Fix
+
+Root cause from logs_89702452940.zip:
+PublicMediaStoreArchive.java calls:
+    Utils.scanFileWithMediaStore(...)
+but the class is in package com.fadcam.utils and did not import com.fadcam.Utils.
+
+Fix:
+    import com.fadcam.Utils;
+
+No storage behavior, MediaStore logic, UI layout, recording, Gesture Scoring,
+rotation, camera, Media3 or localization logic is changed.

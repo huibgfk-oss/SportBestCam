@@ -1,0 +1,20 @@
+SportBestCam Build 0002.5.1 Compatibility Pass
+
+- Restores usable FadRec mute/audio-source control dimensions in portrait and landscape.
+- Prevents Sport/Handball UI and GoalDetectionEngine from initializing inside FadRec.
+- Hides camera-only Sport controls in Screen Recorder mode.
+- Restores front-camera Mirror access from Camera Tools.
+- Restores optional access to original Quick Actions, including drag/reorder.
+- Realtime media invalidation watches SportBestCam and legacy FadCam folders.
+- Watch Records reads current and legacy camera folders; saves exports to SportBestCam.
+- Scan info recognises both current and legacy recording folder names.
+- Update checker/changelog fallback points to huibgfk-oss/SportBestCam.
+- Operational debug/QR/fallback filenames use SportBestCam.
+
+Preserved: Unified Sport UI 0002.5.0, camera rotation/wide, Gallery fix, scoreboard in video, team names, Auto Goal/calibration, fullscreen HUD, FadRec engine, streaming/remote, editor, forensics, player/trash, shortcuts and Quick Settings Tile.
+
+Internal identifiers such as com.fadcam and Theme_FadCam_* remain unchanged intentionally for compatibility.
+
+Additional compatibility/rebrand cleanup:
+- Current project GitHub, privacy, remote notification and web-footer links now point to huibgfk-oss/SportBestCam.
+- Original upstream licensing/source attribution files are intentionally retained.

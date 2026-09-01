@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sbc_gesture_front_unsupported">Scorul prin camera frontală nu este disponibil: telefonul nu suportă camerele frontală + spate simultan. Selectează „Zone ascunse camera spate”.</string>
+    <string name="sbc_gesture_front_runtime_error">Scor prin gesturi: camera frontală de analiză nu a putut porni. Filmarea meciului cu camera din spate continuă neschimbată.</string>
+</resources>

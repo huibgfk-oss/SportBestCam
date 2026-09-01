@@ -1,0 +1,525 @@
+/**
+ * ServerStatus - Data model for /status endpoint response
+ * 
+ * Includes staleness detection (Step 6.11) via lastUpdated timestamp
+ */
+class ServerStatus {
+    constructor(data = {}) {
+        this.update(data);
+    }
+
+    /**
+     * Update model with new data
+     * @param {Object} data - Raw status data from API
+     */
+    update(data) {
+        // Timestamps for staleness detection (Step 6.11)
+        this.lastUpdated = data.lastUpdated || 0;  // Unix timestamp from phone
+        this.serverVersion = data.serverVersion || '1.0.0';  // For compatibility checks
+        this.receivedAt = Date.now();  // When dashboard received this status
+        this.cloudMode = data.cloudMode || false;  // Whether this is from relay/cloud
+        // Timestamp of last successfully uploaded segment to the cloud relay (0 if never uploaded).
+        // Used to detect stale/dead streams that show state=ready but have no live files on relay.
+        this.lastRelayUploadMs = data.lastRelayUploadMs || 0;
+
+        // Core status
+        this.state = data.state || 'offline';
+        this.mode = data.mode || 'disabled';
+        this.message = data.message || '';
+        this.isRecording = data.isRecording || false;
+        this.isPaused = data.isPaused || false;
+        this.streaming = data.streaming || false;
+
+        // Uptime details (nested object)
+        this.uptimeDetails = data.uptimeDetails || {};
+        this.uptimeSeconds = this.uptimeDetails.seconds || data.uptimeSeconds || 0;
+
+        // Format uptime from the details if available
+        if (!this.uptimeDetails.formattedUptime && this.uptimeDetails.formatted) {
+            this.uptimeDetails.formattedUptime = this.uptimeDetails.formatted;
+        }
+        if (!this.uptimeDetails.sessionStartedTime && this.uptimeDetails.startTime) {
+            this.uptimeDetails.sessionStartedTime = this.uptimeDetails.startTime;
+        }
+        if (!this.uptimeDetails.sessionStartedDate && this.uptimeDetails.startTimestamp) {
+            const date = new Date(this.uptimeDetails.startTimestamp);
+            this.uptimeDetails.sessionStartedDate = date.toLocaleDateString();
+        }
+
+        // Stream quality (nested object)
+        if (data.streamQuality && typeof data.streamQuality === 'object') {
+            this.qualityPreset = (data.streamQuality.preset || 'high').toUpperCase();
+            this.bitrate = data.streamQuality.bitrate || '0 Mbps';
+            this.fps = data.streamQuality.fpsCap || 0;
+        } else {
+            this.qualityPreset = 'HIGH';
+            this.bitrate = '0 Mbps';
+            this.fps = 0;
+        }
+
+        // Resolution from message or construct from width/height
+        this.resolution = data.resolution || '0x0';
+        this.videoCodec = data.videoCodec || 'unknown';
+        this.isHevcCodec = this.videoCodec && this.videoCodec.toUpperCase().includes('HEVC');
+
+        // Buffer info
+        this.fragmentsBuffered = data.fragmentsBuffered || 0;
+        this.bufferSizeMb = data.bufferSizeMb || 0;
+
+        // Network (handle both object and string)
+        if (data.networkHealth && typeof data.networkHealth === 'object') {
+            this.networkHealth = data.networkHealth.status || 'unknown';
+            this.networkDownloadMbps = data.networkHealth.downloadMbps ?? null;
+            this.networkUploadMbps = data.networkHealth.uploadMbps ?? null;
+            this.networkLatencyMs = data.networkHealth.latencyMs ?? null;
+            this.networkSignalLevel = data.networkHealth.signalLevel ?? -1;
+            this.networkLastMeasurementMs = data.networkHealth.lastMeasurementMs ?? 0;
+        } else {
+            this.networkHealth = data.networkHealth || 'unknown';
+            this.networkDownloadMbps = null;
+            this.networkUploadMbps = null;
+            this.networkLatencyMs = null;
+            this.networkSignalLevel = -1;
+            this.networkLastMeasurementMs = 0;
+        }
+
+        // Battery (nested object)
+        if (data.batteryDetails && typeof data.batteryDetails === 'object') {
+            this.battery = {
+                percent: data.batteryDetails.percent ?? -1,
+                status: data.batteryDetails.status || 'unknown',
+                consumed: data.batteryDetails.consumed !== undefined && data.batteryDetails.consumed !== null ? data.batteryDetails.consumed + '' : 'N/A',
+                remainingHours: data.batteryDetails.remaining_hours ?? -1,
+                warning: data.batteryDetails.warning || false,
+                warningThreshold: data.batteryDetails.warningThreshold || 20
+            };
+        } else {
+            this.battery = {
+                percent: -1,
+                status: 'unknown',
+                consumed: 'N/A',
+                remainingHours: -1,
+                warning: false,
+                warningThreshold: 20
+            };
+        }
+
+        // Connections
+        this.activeConnections = data.activeConnections || 0;
+        this.clientIps = data.clients ? data.clients.map(c => c.ip) : [];
+
+        // Cloud viewers connect through relay. In cloud mode activeConnections already
+        // represents this same value, so do not add it twice.
+        this.cloudViewers = data.cloudViewers || 0;
+        this.cloudViewerTelemetryAvailable = data.cloudViewerTelemetryAvailable === true;
+
+        this.totalConnectedClients = data.cloudMode
+            ? this.activeConnections
+            : this.activeConnections + this.cloudViewers;
+
+        // Store full clients array for modal display
+        this.clients = data.clients || [];
+
+        // Events/logs
+        this.events = data.events || [];
+
+        // Segments/buffer info
+        this.hasInitSegment = data.hasInitSegment || false;
+
+        // Torch state
+        this.torchOn = data.torchState || false;
+
+        // Camera selection (back / front)
+        this.cameraType = (data.cameraType || 'back').toLowerCase();
+
+        // Zoom and pan state
+        this.zoomRatio = data.zoomRatio ?? 1.0;
+        this.zoomRatioMin = Number.isFinite(data.zoomRatioMin) ? data.zoomRatioMin : undefined;
+        this.zoomRatioMax = Number.isFinite(data.zoomRatioMax) ? data.zoomRatioMax : undefined;
+        this.panX = data.panX ?? 0.0;
+        this.panY = data.panY ?? 0.0;
+
+        // Exposure compensation and backend-computed display value.
+        // The dashboard UI reads these normalized fields from ServerStatus,
+        // so we must preserve the raw response values instead of dropping them.
+        this.exposureCompensation = data.exposureCompensation ?? 0;
+        this.exposureCompensationDisplay = data.exposureCompensationDisplay;
+        this.exposureCompensationMin = data.exposureCompensationMin;
+        this.exposureCompensationMax = data.exposureCompensationMax;
+        this.exposureCompensationStep = data.exposureCompensationStep;
+        this.aeLockEnabled = data.aeLockEnabled || false;
+
+        // Front-camera mirror
+        this.mirrorEnabled = data.mirrorEnabled || false;
+
+        // Volume state
+        this.volume = data.volume ?? 0;
+        this.maxVolume = data.maxVolume ?? 15;
+        this.volumePercentage = data.volumePercentage ?? 0;
+
+        // Alarm state (nested object)
+        if (data.alarm && typeof data.alarm === 'object') {
+            this.alarm = {
+                isRinging: data.alarm.isRinging || false,
+                sound: data.alarm.sound || 'office_phone.mp3',
+                durationMs: data.alarm.durationMs ?? -1,
+                remainingMs: data.alarm.remainingMs ?? 0
+            };
+        } else {
+            this.alarm = {
+                isRinging: false,
+                sound: 'office_phone.mp3',
+                durationMs: -1,
+                remainingMs: 0
+            };
+        }
+
+        // Stats
+        this.dataTransferredMb = data.totalDataTransferredMb || 0;
+        this.uptimeSeconds = data.uptimeSeconds || 0;
+
+        // Parse uptime details (nested object)
+        if (data.uptimeDetails && typeof data.uptimeDetails === 'object') {
+            this.uptimeFormatted = data.uptimeDetails.formatted || '0s';
+            this.uptimeStartTime = data.uptimeDetails.startTime || 'Not started';
+            this.uptimeStartDate = data.uptimeDetails.startDate || 'Not started';
+            this.uptimeStartTimestamp = data.uptimeDetails.startTimestamp || 0;
+        } else {
+            this.uptimeFormatted = '0s';
+            this.uptimeStartTime = 'Not started';
+            this.uptimeStartDate = 'Not started';
+            this.uptimeStartTimestamp = 0;
+        }
+
+        // Authentication state
+        this.authEnabled = data.authEnabled || false;
+        this.authTimeoutMs = data.authTimeoutMs || 0;  // 0 means never auto-lock
+        this.authSessionsCount = data.authSessionsCount || 0;
+        this.authSessionsCleared = data.authSessionsCleared || false;  // Flag for logout all
+
+        // Parse memory and storage from strings
+        // Memory format from Android app: "75% (1.2/5.6 GB)" with floating-point GB values
+        if (data.memoryUsage) {
+            // Extract percentage: "75% (1.2/5.6 GB)" → 75
+            const percentMatch = data.memoryUsage.match(/(\d+)%/);
+            this.memoryPercent = percentMatch ? parseInt(percentMatch[1]) : 0;
+
+            // Extract used/total: "75% (1.2/5.6 GB)" → [1.2, 5.6] (floats, in GB)
+            // Handles both old format with integers (MB) and new format with floats (GB)
+            const memMatch = data.memoryUsage.match(/\((\d+(?:\.\d+)?)\/([\d.]+)\s*(MB|GB)\)/i);
+            if (memMatch) {
+                const used = parseFloat(memMatch[1]);
+                const total = parseFloat(memMatch[2]);
+                const unit = memMatch[3].toUpperCase();
+                
+                // Convert to MB if in GB
+                if (unit === 'GB') {
+                    this.memoryUsedMb = Math.round(used * 1024);
+                    this.memoryTotalMb = Math.round(total * 1024);
+                } else {
+                    // Already in MB (from old format)
+                    this.memoryUsedMb = Math.round(used);
+                    this.memoryTotalMb = Math.round(total);
+                }
+            } else {
+                this.memoryUsedMb = 0;
+                this.memoryTotalMb = 0;
+            }
+        } else {
+            this.memoryPercent = 0;
+            this.memoryUsedMb = 0;
+            this.memoryTotalMb = 0;
+        }
+
+        if (data.storage) {
+            // Handle both storage string formats sent by the Android app:
+            //   Old: "1.4/50.3 GB"
+            //   New: "193% (97.0/50.3 GB)"
+            // Extract the two floating-point numbers that surround the "/" before "GB".
+            const gbMatch = data.storage.match(/([\d.]+)\s*\/\s*([\d.]+)\s*GB/);
+            if (gbMatch) {
+                this.storageUsedGb = parseFloat(gbMatch[1]);
+                this.storageTotalGb = parseFloat(gbMatch[2]);
+                // Sanity-guard: used cannot legally exceed total (StatFs quirks on some devices)
+                if (this.storageTotalGb > 0 && this.storageUsedGb > this.storageTotalGb) {
+                    console.warn('[ServerStatus] storageUsedGb (' + this.storageUsedGb +
+                        ') > storageTotalGb (' + this.storageTotalGb + ') — clamping to total');
+                    this.storageUsedGb = this.storageTotalGb;
+                }
+            } else {
+                this.storageUsedGb = 0;
+                this.storageTotalGb = 0;
+            }
+        } else {
+            this.storageUsedGb = 0;
+            this.storageTotalGb = 0;
+        }
+
+        // Store raw memory string for display
+        this.memory = data.memoryUsage || '—';
+
+        // Timestamp
+        this.lastUpdate = Date.now();
+    }
+
+    /**
+     * Check if status is ready for streaming
+     * @returns {boolean}
+     */
+    isReady() {
+        return this.state === CONFIG.STATES.READY;
+    }
+
+    /**
+     * Check if status indicates buffering/initializing
+     * @returns {boolean}
+     */
+    isLoading() {
+        return this.state === CONFIG.STATES.BUFFERING ||
+            this.state === CONFIG.STATES.INITIALIZING;
+    }
+
+    /**
+     * Get formatted uptime - calculates real-time uptime from startTimestamp
+     * This eliminates the delay between phone status push and dashboard display
+     * @returns {string}
+     */
+    getFormattedUptime() {
+        // Use startTimestamp for real-time uptime calculation
+        // This fixes the 30-60 second delay between phone and dashboard
+        if (this.uptimeStartTimestamp && this.uptimeStartTimestamp > 0) {
+            const realtimeSeconds = Math.floor((Date.now() - this.uptimeStartTimestamp) / 1000);
+            return Formatter.formatUptime(realtimeSeconds);
+        }
+        // Fallback to server-provided uptime if no timestamp available
+        return Formatter.formatUptime(this.uptimeSeconds);
+    }
+
+    /**
+     * Get real-time uptime in seconds (calculated from startTimestamp)
+     * @returns {number}
+     */
+    getRealtimeUptimeSeconds() {
+        if (this.uptimeStartTimestamp && this.uptimeStartTimestamp > 0) {
+            return Math.floor((Date.now() - this.uptimeStartTimestamp) / 1000);
+        }
+        return this.uptimeSeconds;
+    }
+
+    /**
+     * Get formatted data transferred
+     * @returns {string}
+     */
+    getFormattedDataTransferred() {
+        return Formatter.formatBytes(this.dataTransferredMb * 1024 * 1024);
+    }
+
+    /**
+     * Get formatted storage (used/total)
+     * @returns {string}
+     */
+    getFormattedStorage() {
+        if (this.storageUsedGb > 0 && this.storageTotalGb > 0) {
+            return `${this.storageUsedGb.toFixed(1)}/${this.storageTotalGb.toFixed(1)} GB`;
+        }
+        return '—';
+    }
+
+    /**
+     * Get formatted memory usage
+     * @returns {string}
+     */
+    getFormattedMemory() {
+        if (this.memoryTotalMb > 0) {
+            const usedGb = this.memoryUsedMb / 1024;
+            const totalGb = this.memoryTotalMb / 1024;
+            return `${usedGb.toFixed(1)}/${totalGb.toFixed(1)} GB`;
+        }
+        return '—';
+    }
+
+    /**
+     * Get battery percentage formatted
+     * @returns {string}
+     */
+    getFormattedBattery() {
+        if (this.battery.percent < 0) return 'N/A';
+
+        // Show warning indicator if battery is low
+        if (this.battery.warning && this.battery.warning.length > 0) {
+            return '⚠️ ' + this.battery.percent + '%';
+        }
+
+        return this.battery.percent + '%';
+    }
+
+    /**
+     * Get status CSS class for styling
+     * @returns {string}
+     */
+    getStatusClass() {
+        const stateMap = {
+            'ready': 'ready',
+            'initializing': 'initializing',
+            'buffering': 'buffering',
+            'disabled': 'disabled',
+            'not_recording': 'offline'
+        };
+        return stateMap[this.state] || 'offline';
+    }
+
+    // =========================================================================
+    // Staleness Detection (Step 6.11)
+    // =========================================================================
+
+    /**
+     * Staleness thresholds in milliseconds
+     */
+    static get STALENESS_THRESHOLDS() {
+        return {
+            FRESH: 5000,      // < 5s = green (fresh)
+            DELAYED: 10000,   // 5-10s = yellow (delayed — network blip)
+            OFFLINE: 10000    // >= 10s = red (offline) — phone pushes every 2s, 5 missed = definitely offline
+        };
+    }
+
+    /**
+     * Get age of status in milliseconds (time since phone generated it)
+     * @returns {number} Age in ms
+     */
+    getStatusAge() {
+        if (!this.lastUpdated || this.lastUpdated === 0) {
+            // No lastUpdated timestamp - check if this is cloud mode
+            if (this.cloudMode) {
+                // Cloud mode with no lastUpdated = legacy status from relay
+                // This is stale data - return OFFLINE threshold + 1 to mark as offline
+                return ServerStatus.STALENESS_THRESHOLDS.OFFLINE + 1;
+            }
+            // Local mode - use receivedAt for freshness (phone connection is live)
+            return this.receivedAt ? (Date.now() - this.receivedAt) : 0;
+        }
+        return Date.now() - this.lastUpdated;
+    }
+
+    /**
+     * Get staleness state for UI indicators.
+     * In cloud mode, the relay IS the source of truth — if it returns a status,
+     * the phone was recently connected. Never mark cloud status as offline.
+     * Local mode uses aggressive thresholds because a missed poll means the
+     * phone HTTP server is unreachable.
+     * @returns {'fresh'|'delayed'|'stale'|'offline'}
+     */
+    getStalenessState() {
+        const age = this.getStatusAge();
+        const t = ServerStatus.STALENESS_THRESHOLDS;
+
+        if (this.cloudMode) {
+            // Cloud mode: relay is the source of truth.
+            // Age up to 60s = fresh (accounts for relay write + poll latency).
+            // Beyond 60s = delayed (phone may be temporarily disconnected).
+            // The relay data is never considered offline — it's the latest known state.
+            if (age < 60000) return 'fresh';
+            return 'delayed';
+        }
+
+        // Local mode: phone is directly connected, aggressive thresholds
+        if (age < t.FRESH) return 'fresh';
+        if (age < t.DELAYED) return 'delayed';
+        return 'offline';
+    }
+
+    /**
+     * Check if status is stale (older than OFFLINE threshold).
+     * Cloud mode is never stale — relay data is always the best known state.
+     * @returns {boolean}
+     */
+    isStale() {
+        if (this.cloudMode) return false;
+        return this.getStatusAge() >= ServerStatus.STALENESS_THRESHOLDS.OFFLINE;
+    }
+
+    /**
+     * Check if status is considered online (fresh enough)
+     * @returns {boolean}
+     */
+    isOnline() {
+        if (this.cloudMode) return true;
+        return !this.isStale();
+    }
+
+    /**
+     * Get formatted age string for tooltips
+     * @returns {string} e.g., "2s ago", "45s ago", "2m ago"
+     */
+    getFormattedAge() {
+        const ageMs = this.getStatusAge();
+        const ageSec = Math.floor(ageMs / 1000);
+
+        if (ageSec < 60) return `${ageSec}s ago`;
+        if (ageSec < 3600) return `${Math.floor(ageSec / 60)}m ago`;
+        return `${Math.floor(ageSec / 3600)}h ago`;
+    }
+
+    /**
+     * Get LED color class based on staleness
+     * @returns {string} CSS class name
+     */
+    getStalenessLedClass() {
+        const state = this.getStalenessState();
+        const classMap = {
+            'fresh': 'led-green',
+            'delayed': 'led-yellow',
+            'stale': 'led-orange',
+            'offline': 'led-red'
+        };
+        return classMap[state] || 'led-red';
+    }
+
+    /**
+     * Get staleness status text for UI
+     * @returns {string}
+     */
+    getStalenessText() {
+        const state = this.getStalenessState();
+        const textMap = {
+            'fresh': 'Online',
+            'delayed': 'Syncing...',
+            'stale': 'Connection unstable',
+            'offline': 'Server offline'
+        };
+        return textMap[state] || 'Offline';
+    }
+
+    /**
+     * Convert to JSON
+     * @returns {Object}
+     */
+    toJSON() {
+        return {
+            state: this.state,
+            mode: this.mode,
+            qualityPreset: this.qualityPreset,
+            fps: this.fps,
+            resolution: this.resolution,
+            bitrate: this.bitrate,
+            codec: this.codec,
+            fragmentsBuffered: this.fragmentsBuffered,
+            bufferSizeMb: this.bufferSizeMb,
+            networkHealth: this.networkHealth,
+            battery: this.battery,
+            activeConnections: this.activeConnections,
+            clientIps: this.clientIps,
+            dataTransferredMb: this.dataTransferredMb,
+            uptimeSeconds: this.getRealtimeUptimeSeconds(), // Use real-time uptime
+            uptimeStartTimestamp: this.uptimeStartTimestamp, // Include for debugging
+            memoryUsageMb: this.memoryUsageMb,
+            storageAvailableGb: this.storageAvailableGb,
+            lastUpdate: this.lastUpdate,
+            // Staleness info (Step 6.11)
+            lastUpdated: this.lastUpdated,
+            serverVersion: this.serverVersion,
+            statusAge: this.getStatusAge(),
+            stalenessState: this.getStalenessState()
+        };
+    }
+}

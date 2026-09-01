@@ -1,0 +1,918 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:colorBackground">
+
+    <!-- Fixed Header -->
+    <LinearLayout
+        android:id="@+id/header_bar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="12dp"
+        android:background="@drawable/header_bar_rounded_bg"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:id="@+id/header_bar_top_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            <ImageView
+                android:id="@+id/action_close"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="12dp"
+                android:padding="2dp"
+                android:src="@drawable/ic_close"
+                android:contentDescription="@string/universal_close"
+                android:tint="@android:color/white"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <com.fadcam.ui.utils.AnimatedTextView
+                    android:id="@+id/title_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="start|center_vertical"
+                    android:text="@string/records_title"
+                    android:textColor="@android:color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/records_header_stats_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:src="@drawable/ic_stat_playback"
+                        android:tint="#CCFFFFFF" />
+
+                    <com.fadcam.ui.utils.AnimatedTextView
+                        android:id="@+id/text_records_stat_videos"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="3dp"
+                        android:textColor="#CCFFFFFF"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        tools:text="82" />
+
+                    <ImageView
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:layout_marginStart="10dp"
+                        android:src="@drawable/ic_photo"
+                        android:tint="#CCFFFFFF" />
+
+                    <com.fadcam.ui.utils.AnimatedTextView
+                        android:id="@+id/text_records_stat_photos"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="3dp"
+                        android:textColor="#CCFFFFFF"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        tools:text="20" />
+
+                    <ImageView
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:layout_marginStart="10dp"
+                        android:src="@drawable/database_24px"
+                        android:tint="#CCFFFFFF" />
+
+                    <com.fadcam.ui.utils.AnimatedTextView
+                        android:id="@+id/text_records_stat_size"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="3dp"
+                        android:textColor="#CCFFFFFF"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        tools:text="1.8 GB" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/action_more_options"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:padding="2dp"
+                android:src="@drawable/ic_two_line_hamburger"
+                android:contentDescription="@string/more_options"
+                android:tint="@android:color/white"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+
+            <FrameLayout
+                android:id="@+id/action_select_all_container"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone">
+                <ImageView
+                    android:id="@+id/action_select_all_bg"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/picker_check_background" />
+                <ImageView
+                    android:id="@+id/action_select_all_check"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/avd_check_draw"
+                    android:tint="@android:color/white"
+                    android:contentDescription="@string/trash_select_all" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/records_header_delete_dock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_records_delete_dock"
+            android:orientation="vertical"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/records_header_delete_icon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_delete_white"
+                    android:tint="@android:color/white" />
+
+                <com.fadcam.ui.utils.AnimatedTextView
+                    android:id="@+id/records_header_delete_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/records_delete_header_default_title"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <com.fadcam.ui.utils.AnimatedTextView
+                    android:id="@+id/records_header_delete_ok"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_records_delete_ok_button"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:minWidth="58dp"
+                    android:paddingStart="14dp"
+                    android:paddingTop="7dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="7dp"
+                    android:text="@string/records_delete_header_action_ok"
+                    android:textAllCaps="true"
+                    android:textColor="#17305B"
+                    android:textSize="12sp"
+                    android:letterSpacing="0.08"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/records_header_delete_progress"
+                style="@style/Widget.Material3.LinearProgressIndicator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:indeterminate="false"
+                android:max="100"
+                android:progress="30"
+                app:trackThickness="8dp"
+                app:trackColor="#40FFFFFF"
+                app:indicatorColor="@android:color/white" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/records_header_delete_current"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="#E6FFFFFF"
+                    android:textSize="13sp"
+                    tools:text="Large video file.mp4" />
+
+                <TextView
+                    android:id="@+id/records_header_delete_eta"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:textColor="#CCFFFFFF"
+                    android:textSize="12sp"
+                    tools:text="ETA 14s" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/records_header_delete_summary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="#CCFFFFFF"
+                android:textSize="12sp"
+                tools:text="2 of 3 complete • 1 failed" />
+        </LinearLayout>
+
+        <!-- Repair notice banner (issue #332): shown inside the header when an
+             interrupted recording was automatically repaired to a playable format.
+             Living inside header_bar keeps it above the filter row with no overlap. -->
+        <LinearLayout
+            android:id="@+id/records_repair_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/gps_warning_banner_bg"
+            android:paddingStart="12dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:layout_marginTop="10dp"
+            android:visibility="gone"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginEnd="10dp"
+                android:src="@drawable/ic_error"
+                android:tint="#EF5350" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/records_repair_banner_title"
+                    android:textColor="#EF9A9A"
+                    android:textStyle="bold"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/text_records_repair_message"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="#EF9A9A"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/text_records_repair_time"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="#C99A9A"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btn_dismiss_records_repair"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:padding="4dp"
+                android:layout_marginStart="4dp"
+                android:src="@drawable/ic_cross"
+                android:tint="#EF9A9A"
+                android:contentDescription="@string/records_repair_banner_dismiss"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Subtle loading progress indicator - only shown if loading takes >200ms -->
+    <ProgressBar
+        android:id="@+id/loading_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="3dp"
+        android:indeterminate="true"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/header_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Floating dock for filter chips -->
+    <LinearLayout
+        android:id="@+id/records_filter_row"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="6dp"
+
+        app:layout_constraintTop_toBottomOf="@id/header_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="?attr/colorTopBar">
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:overScrollMode="never"
+                android:requiresFadingEdge="horizontal"
+                android:fadingEdgeLength="24dp"
+                android:paddingStart="8dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="4dp">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_records_filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:singleSelection="true"
+                app:selectionRequired="true"
+                app:singleLine="true"
+                app:chipSpacingHorizontal="6dp">
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_filter_all"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="@string/records_filter_all" />
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_filter_camera"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/records_filter_camera" />
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_filter_screen"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/records_filter_screen" />
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_filter_faditor"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/records_filter_faditor" />
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_filter_stream"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/records_filter_stream" />
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_filter_shot"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/records_filter_shot" />
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_filter_miniapps"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mini Apps" />
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:id="@+id/btn_filter_checklist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:fontFamily="@font/materialicons"
+            android:text="checklist"
+            android:textColor="#666666"
+            android:textSize="20sp"
+            android:padding="4dp"
+            android:contentDescription="@string/records_filter_checklist_desc" />
+    </LinearLayout>
+
+    <!-- Floating dock for camera filter chips -->
+    <LinearLayout
+        android:id="@+id/records_camera_filter_row"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="6dp"
+        app:layout_constraintTop_toBottomOf="@id/records_filter_row"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="?attr/colorTopBar">
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:overScrollMode="never"
+                android:requiresFadingEdge="horizontal"
+                android:fadingEdgeLength="24dp"
+                android:paddingStart="8dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="4dp">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_camera_filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:singleSelection="true"
+                app:selectionRequired="true"
+                app:singleLine="true"
+                app:chipSpacingHorizontal="6dp">
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_camera_all"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="@string/records_filter_camera_all" />
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_camera_back"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/records_filter_camera_back" />
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_camera_front"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/records_filter_camera_front" />
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_camera_dual"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/records_filter_camera_dual" />
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/records_faditor_filter_row"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="6dp"
+        app:layout_constraintTop_toBottomOf="@id/records_camera_filter_row"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="?attr/colorTopBar">
+
+            <HorizontalScrollView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fillViewport="false"
+                android:scrollbars="none"
+                android:overScrollMode="never"
+                android:requiresFadingEdge="horizontal"
+                android:fadingEdgeLength="24dp"
+                android:paddingStart="8dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="4dp">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group_faditor_filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:singleSelection="true"
+                    app:selectionRequired="true"
+                    app:singleLine="true"
+                    app:chipSpacingHorizontal="6dp">
+
+                    <com.fadcam.ui.utils.AnimatedChip
+                        android:id="@+id/chip_faditor_all"
+                        style="@style/Widget.FadCam.RecordsFilterChip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:text="@string/records_filter_faditor_all" />
+
+                    <com.fadcam.ui.utils.AnimatedChip
+                        android:id="@+id/chip_faditor_converted"
+                        style="@style/Widget.FadCam.RecordsFilterChip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/records_filter_faditor_converted" />
+
+                    <com.fadcam.ui.utils.AnimatedChip
+                        android:id="@+id/chip_faditor_merge"
+                        style="@style/Widget.FadCam.RecordsFilterChip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/records_filter_faditor_merge" />
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/records_shot_filter_row"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="6dp"
+        app:layout_constraintTop_toBottomOf="@id/records_faditor_filter_row"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="?attr/colorTopBar">
+
+            <HorizontalScrollView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fillViewport="false"
+                android:scrollbars="none"
+                android:overScrollMode="never"
+                android:requiresFadingEdge="horizontal"
+                android:fadingEdgeLength="24dp"
+                android:paddingStart="8dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="4dp">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group_shot_filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:singleSelection="true"
+                    app:selectionRequired="true"
+                    app:singleLine="true"
+                    app:chipSpacingHorizontal="6dp">
+
+                    <com.fadcam.ui.utils.AnimatedChip
+                        android:id="@+id/chip_shot_all"
+                        style="@style/Widget.FadCam.RecordsFilterChip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:text="@string/records_filter_shot_all" />
+
+                    <com.fadcam.ui.utils.AnimatedChip
+                        android:id="@+id/chip_shot_back"
+                        style="@style/Widget.FadCam.RecordsFilterChip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/records_filter_shot_back" />
+
+                    <com.fadcam.ui.utils.AnimatedChip
+                        android:id="@+id/chip_shot_selfie"
+                        style="@style/Widget.FadCam.RecordsFilterChip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/records_filter_shot_selfie" />
+
+                    <com.fadcam.ui.utils.AnimatedChip
+                        android:id="@+id/chip_shot_fadrec"
+                        style="@style/Widget.FadCam.RecordsFilterChip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/records_filter_shot_fadrec" />
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/records_miniapps_filter_row"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="6dp"
+        app:layout_constraintTop_toBottomOf="@id/records_shot_filter_row"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <HorizontalScrollView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:scrollbars="none"
+            android:overScrollMode="never"
+            android:requiresFadingEdge="horizontal"
+            android:fadingEdgeLength="24dp"
+            android:paddingStart="8dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="4dp">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_miniapps_filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:singleSelection="true"
+                app:selectionRequired="true"
+                app:singleLine="true"
+                app:chipSpacingHorizontal="6dp">
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_miniapps_all"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="All" />
+
+                <com.fadcam.ui.utils.AnimatedChip
+                    android:id="@+id/chip_miniapps_qr"
+                    style="@style/Widget.FadCam.RecordsFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="QR Scanner" />
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/filter_helper_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="6dp"
+        android:paddingBottom="8dp"
+        android:textColor="#99FFFFFF"
+        android:textSize="12sp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/records_miniapps_filter_row"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="Normal camera recordings" />
+
+    <HorizontalScrollView
+        android:id="@+id/selection_actions_row"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:scrollbars="none"
+        android:overScrollMode="never"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="8dp"
+        app:layout_constraintTop_toBottomOf="@id/filter_helper_text"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/btn_action_select_all"
+                style="@style/RecordsActionPill" />
+
+            <TextView
+                android:id="@+id/btn_action_batch_save"
+                style="@style/RecordsActionPill"
+                android:text="@string/records_batch_save" />
+
+            <TextView
+                android:id="@+id/btn_action_batch_faditor"
+                style="@style/RecordsActionPill"
+                android:text="@string/records_batch_faditor" />
+
+            <TextView
+                android:id="@+id/btn_action_batch_delete"
+                style="@style/RecordsActionPill"
+                android:text="@string/records_batch_delete" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- *** START: Loading Indicator *** -->
+    <ProgressBar
+        android:id="@+id/loading_indicator"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/selection_actions_row"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:visibility="visible"/>
+    <!-- *** END: Loading Indicator *** -->
+
+
+    <!-- Empty State View (Centred) -->
+    <LinearLayout
+        android:id="@+id/empty_state_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/selection_actions_row"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"> <!-- Initially hidden -->
+        <ImageView
+            android:id="@+id/empty_state_icon"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/ic_no_videos"
+            app:tint="#80FFFFFF"
+            android:contentDescription="@string/no_videos_found"
+            android:layout_marginBottom="16dp"/>
+        <TextView
+            android:id="@+id/empty_state_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/no_recordings_yet"
+            android:textSize="18sp"
+            android:textColor="#80FFFFFF"
+            android:gravity="center"/>
+    </LinearLayout>
+
+
+    <!-- RecyclerView -->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh_layout"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/selection_actions_row"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view_records"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingTop="8dp"
+            android:paddingBottom="76dp"
+            android:scrollbars="none"
+            android:visibility="gone"/> <!-- Initially hidden -->
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+
+    <!-- FABs -->
+    <!-- Removed: View mode FAB moved to Records Options side sheet -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab_delete_selected"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="76dp"
+        android:visibility="gone"
+        android:contentDescription="@string/records_batch_actions_title"
+        android:text="@string/records_batch_fab_label"
+        app:icon="@drawable/ic_list"
+        app:backgroundTint="?attr/colorPrimary"
+        app:iconTint="@android:color/white"
+        android:textColor="@android:color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Navigation FAB for scroll to top/bottom (mini size, circular, dark gray) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_scroll_navigation"
+        style="?attr/floatingActionButtonSmallStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="76dp"
+        android:visibility="gone"
+        app:useCompatPadding="true"
+        app:backgroundTint="@color/gray_button_filled"
+        app:srcCompat="@drawable/ic_double_chevron"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:contentDescription="@string/scroll_to_top"
+        android:rotation="-90" />
+
+    <!-- Fast scroller overlay (above FABs, below applock) -->
+    <com.fadcam.ui.GalleryFastScroller
+        android:id="@+id/fast_scroller"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:translationZ="12dp"
+        app:layout_constraintTop_toBottomOf="@id/selection_actions_row"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Fix Start: AppLock full-screen overlay (initially gone)  -->
+    <FrameLayout
+        android:id="@+id/applock_overlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#000"
+        android:visibility="gone"
+        android:elevation="24dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+    <!--  Fix End: AppLock full-screen overlay -->
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,14 @@
+SportBestCam Build 0002.5.0 — unified sport interface
+
+- Built on branded SportBestCam 0002.4.x and keeps orientation, folder/gallery, Media3, memory and compile fixes.
+- Thin TV-style HUD at the top of the live frame.
+- Tap home/away score = +1; long-press = -1, with haptic + visual feedback.
+- Half indicator remains directly tappable (R1/R2).
+- Match timer moved to the bottom thumb-zone (START TIMER / PAUZĂ TIMER).
+- Match settings moved out of the live frame: teams, Auto Goal, left/right calibration and New Match.
+- Auto Goal state is now persisted correctly.
+- Camera quick-actions no longer overlap the live image; mute/fullscreen are bottom proxies and extra camera tools are in a compact menu.
+- Fullscreen Preview uses the same transparent HUD and score gestures; no duplicate timer start/pause button.
+- Camera tools remain available: camera switch, photo, recording limit, fullscreen.
+- Match reset now shows a compact final-score summary before starting a new match.
+- User-visible FadCam wording is further replaced by SportBestCam while technical package/resource identifiers remain intact for compatibility.

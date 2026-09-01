@@ -1,0 +1,6 @@
+SportBestCam Build 0002.3.1 Restore Controls
+- Restores the original FadCam Fullscreen quick action in landscape.
+- Restores the original landscape card-rail/revert toggle.
+- FullscreenPreviewActivity and its close/return control remain original.
+- Quick actions are compact at the top-right, not a full-width overlay.
+- Keeps Build 0002.2 orientation fixes, folder fix and Build 0002.3 Sport Mode.

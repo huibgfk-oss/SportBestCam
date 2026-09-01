@@ -1,0 +1,51 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+# Built application files
+*.apk
+*.aab
+*.ap_
+*.dm
+
+# IDE files
+.idea/
+.idea/compiler.xml
+.idea/deploymentTargetSelector.xml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/libraries
+.idea/caches
+
+# Build output
+app/release/
+app/debug/
+app/build/
+app/**/build/
+**/build/
+
+# Keystore files
+*.jks
+*.keystore
+repomix-output.md
+
+# app/libs/AppLockLibrary/*
+/fadcam-promo/
+extras/*
+TASKS.md
+feedback.md
+tasks/*

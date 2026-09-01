@@ -1,0 +1,5 @@
+SportBestCam Build 0002.5.2a Portrait Preview HUD Fix
+- Fixes overlap between the Handball score HUD and the native top controls in portrait fullscreen preview.
+- Uses the native top dock's real screen position, including status-bar/system inset and margin.
+- HUD moves below the native dock when controls appear and returns to the top when they hide.
+- No camera, recording, timer, scoring or compatibility behavior changes.

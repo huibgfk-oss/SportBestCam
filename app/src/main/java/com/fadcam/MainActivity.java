@@ -1,0 +1,2364 @@
+package com.fadcam;
+
+import com.fadcam.FLog;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
+import android.view.ViewConfiguration;
+import android.widget.Toast;
+import android.widget.ImageView;
+import com.fadcam.ui.OverlayNavUtil;
+import com.fadcam.shortcuts.ShortcutsManager;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.fragment.app.Fragment;
+
+import com.fadcam.ui.RecordsFragment;
+import com.fadcam.ui.RemoteFragment;
+import com.fadcam.ui.HomeFragment;
+import com.fadcam.ui.FaditorMiniFragment;
+import com.fadcam.ui.SettingsHomeFragment;
+import com.fadcam.forensics.ui.ForensicIntelligenceFragment;
+import com.fadcam.ui.utils.NewFeatureManager;
+import com.fadcam.utils.RuntimeCompat;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Locale;
+
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import androidx.core.splashscreen.SplashScreen; // SplashScreen API
+import android.view.WindowManager;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.ViewCompat;
+
+import androidx.recyclerview.widget.RecyclerView;
+import android.content.pm.PackageManager;
+
+import android.widget.HorizontalScrollView;
+
+public class MainActivity extends AppCompatActivity {
+
+    private BottomNavigationView bottomNavigationView;
+    private int originalBottomNavColor = 0; // Store original bottom nav color
+
+    private boolean doubleBackToExitPressedOnce = false;
+    private boolean skipNextBackHandling = false; // New flag to skip toast on next back press
+    private Handler backPressHandler = new Handler();
+    private static final int BACK_PRESS_DELAY = 2000; // 2 seconds
+
+    // Add SharedPreferencesManager field
+    private SharedPreferencesManager sharedPreferencesManager;
+    // Cloak overlay view reference
+    private View cloakOverlay;
+    private android.widget.ImageView cloakIconView;
+    private android.widget.TextView cloakTitleView;
+
+    // ── Volume shutter (volume keys as camera shutter) ─────────────
+    // Tracks the keycode of the volume key currently held down (0 = none held).
+    private int volumeShutterActiveKeyCode = 0;
+    // True once a long-press already fired the recording toggle, so the
+    // subsequent key-up does not ALSO capture a photo.
+    private boolean volumeShutterLongPressTriggered = false;
+    // Double-click window: two short presses within this time switch camera.
+    private static final long VOLUME_DOUBLE_CLICK_TIMEOUT_MS = 350L;
+    // Pending single-click action, delayed to allow a second click to arrive.
+    private Runnable pendingVolumeSingleClickRunnable;
+    private final Handler volumeShutterHandler = new Handler(Looper.getMainLooper());
+
+    private final Runnable backPressRunnable = new Runnable() {
+        @Override
+        public void run() {
+            doubleBackToExitPressedOnce = false;
+        }
+    };
+
+    // Tab swipe navigation state (fragment-based navigation, not ViewPager)
+    private float swipeDownX = 0f;
+    private float swipeDownY = 0f;
+    private boolean swipeCandidate = false;
+    private boolean swipeHandled = false;
+    private int swipeTouchSlop = 0;
+    private static final float SWIPE_HORIZONTAL_RATIO = 1.35f;
+    private boolean previewGestureInProgress = false;
+    /** True while the home quick-actions rearrange (jiggle) mode is active —
+     *  tab-swipes and the sidebar-open swipe must not interfere with dragging. */
+    private boolean quickActionsRearrangeActive = false;
+    /** True while the mode-switcher pill is being dragged. */
+    private boolean modePillDragActive = false;
+    private float previewGestureZoomRatio = 1.0f;
+
+    /**
+     * Public method to be called from fragments that need to disable the
+     * double-back toast temporarily
+     * This will prevent the "Press back again to exit" toast from showing on the
+     * next back press
+     */
+    public void skipNextBackExitHandling() {
+        skipNextBackHandling = true;
+        // Reset automatically after a delay
+        backPressHandler.postDelayed(() -> skipNextBackHandling = false, 1000);
+    }
+
+    // Removed Trash-specific visibility checks; overlay back handling is unified
+    // below.
+
+    /**
+     * Utility so child fragments can request overlay dismissal after popping back
+     * stack.
+     */
+    public void hideOverlayIfNoFragments() {
+        View overlayContainer = findViewById(R.id.overlay_fragment_container);
+        if (overlayContainer != null) {
+            if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
+                overlayContainer.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    /**
+     * Set bottom navigation bar color dynamically.
+     * Used by fragments to change bottom nav color (e.g., Remote tab makes it black).
+     *
+     * @param color Color as integer (e.g., 0xFF000000 for black), or 0 to restore original
+     */
+    public void setBottomNavColor(int color) {
+        if (bottomNavigationView != null) {
+            if (color == 0) {
+                // Restore original color
+                if (originalBottomNavColor != 0) {
+                    bottomNavigationView.setBackgroundColor(originalBottomNavColor);
+                }
+            } else {
+                // Set custom color
+                bottomNavigationView.setBackgroundColor(color);
+            }
+        }
+    }
+
+    /**
+     * Set the status bar (notification bar at top) color dynamically.
+     * Used by fragments to change status bar color (e.g., Remote tab makes it black).
+     *
+     * @param color Color as integer (e.g., 0xFF000000 for black), or 0 to restore original from theme
+     */
+    public void setStatusBarColor(int color) {
+        if (getWindow() != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            // Keep status bar transparent so it always blends with dynamic headers/themes.
+            getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        }
+        
+        // Update the status bar scrim color
+        View statusBarScrim = findViewById(R.id.status_bar_scrim);
+        if (statusBarScrim != null) {
+            if (color == 0) {
+                // Restore theme color (resolve TopBar color attribute)
+                int colorTopBar = resolveThemeColor(this, R.attr.colorTopBar);
+                statusBarScrim.setBackgroundColor(colorTopBar);
+                
+                // Restore theme-based icon tint (Snow Veil is light theme, others are dark)
+                String currentTheme = SharedPreferencesManager.getInstance(this).sharedPreferences
+                        .getString(Constants.PREF_APP_THEME, Constants.DEFAULT_APP_THEME);
+                if ("Snow Veil".equals(currentTheme) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    // Light theme -> dark icons
+                    getWindow().getDecorView().setSystemUiVisibility(
+                        getWindow().getDecorView().getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    // Dark theme -> light icons
+                    getWindow().getDecorView().setSystemUiVisibility(
+                        getWindow().getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                }
+            } else {
+                // Set custom color (e.g., black for Remote tab)
+                statusBarScrim.setBackgroundColor(color);
+                
+                // For dark backgrounds (like black), ensure icons are light (white)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    getWindow().getDecorView().setSystemUiVisibility(
+                        getWindow().getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                }
+            }
+        }
+    }
+
+    /**
+     * Set the system navigation bar (gesture/buttons area at bottom) color.
+     *
+     * @param color Color as integer (e.g., 0xFF000000 for black), or 0 to restore theme color
+     */
+    public void setNavigationBarColor(int color) {
+        if (getWindow() != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            // Keep navigation bar transparent in edge-to-edge mode.
+            getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        }
+        
+        // Update root layout background color to affect the navigation/gesture area background.
+        // This area is visible because of the fragment_container and nav_container paddings.
+        View root = findViewById(R.id.main_root_layout);
+        if (root != null) {
+            if (color == 0) {
+                // Restore original theme background color
+                int bgColor = resolveThemeColor(this, android.R.attr.colorBackground);
+                root.setBackgroundColor(bgColor);
+                
+                // Restore theme-based icon tint
+                String currentTheme = SharedPreferencesManager.getInstance(this).sharedPreferences
+                        .getString(Constants.PREF_APP_THEME, Constants.DEFAULT_APP_THEME);
+                if ("Snow Veil".equals(currentTheme) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // Light theme -> dark icons
+                    getWindow().getDecorView().setSystemUiVisibility(
+                        getWindow().getDecorView().getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // Dark theme -> light icons
+                    getWindow().getDecorView().setSystemUiVisibility(
+                        getWindow().getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+                }
+            } else {
+                // Set custom color
+                root.setBackgroundColor(color);
+                
+                // For dark backgrounds (like black), ensure icons are light (white)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    getWindow().getDecorView().setSystemUiVisibility(
+                        getWindow().getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+                }
+            }
+        }
+    }
+
+    /**
+     * Update feature badge visibility based on whether features have been seen.
+     * Uses Material Design BadgeDrawable on BottomNavigationView items.
+     */
+    private void updateFeatureBadgeVisibility() {
+        try {
+            if (bottomNavigationView == null) {
+                return;
+            }
+            
+            // Handle Remote badge
+            boolean shouldShowRemoteBadge = NewFeatureManager.shouldShowBadge(this, "remote");
+            FLog.d("MainActivity", "updateFeatureBadgeVisibility: shouldShowRemoteBadge=" + shouldShowRemoteBadge);
+            
+            if (shouldShowRemoteBadge) {
+                // Show badge on Remote nav item
+                try {
+                    com.google.android.material.badge.BadgeDrawable badge = 
+                        bottomNavigationView.getOrCreateBadge(R.id.navigation_remote);
+                    badge.setVisible(true);
+                    badge.setText("NEW"); // Show "NEW" text instead of number
+                    badge.setBackgroundColor(0xFF4CAF50); // Green background
+                    badge.setBadgeTextColor(0xFFFFFFFF); // White text color
+                    FLog.d("MainActivity", "Badge shown for remote");
+                } catch (Exception e) {
+                    FLog.e("MainActivity", "Error creating badge", e);
+                }
+            } else {
+                // Remove badge from Remote nav item
+                try {
+                    bottomNavigationView.removeBadge(R.id.navigation_remote);
+                    FLog.d("MainActivity", "Badge removed for remote");
+                } catch (Exception e) {
+                    FLog.e("MainActivity", "Error removing badge", e);
+                }
+            }
+            
+            // Handle Settings Nav Badge (separate from watermark option inside settings)
+            boolean shouldShowSettingsNavBadge = NewFeatureManager.shouldShowBadge(this, "settings_nav");
+            FLog.d("MainActivity", "updateFeatureBadgeVisibility: shouldShowSettingsNavBadge=" + shouldShowSettingsNavBadge);
+            
+            if (shouldShowSettingsNavBadge) {
+                // Show badge on Settings nav item as a small dot (no text, no number)
+                try {
+                    com.google.android.material.badge.BadgeDrawable badge = 
+                        bottomNavigationView.getOrCreateBadge(R.id.navigation_settings);
+                    badge.setVisible(true);
+                    badge.clearNumber();
+                    badge.clearText();
+                    badge.setHorizontalPadding(0);
+                    badge.setVerticalPadding(0);
+                    badge.setBackgroundColor(0xFF4CAF50); // Green background
+                    FLog.d("MainActivity", "Badge shown for settings");
+                } catch (Exception e) {
+                    FLog.e("MainActivity", "Error creating settings badge", e);
+                }
+            } else {
+                // Remove badge from Settings nav item
+                try {
+                    bottomNavigationView.removeBadge(R.id.navigation_settings);
+                    FLog.d("MainActivity", "Badge removed for settings");
+                } catch (Exception e) {
+                    FLog.e("MainActivity", "Error removing settings badge", e);
+                }
+            }
+        } catch (Exception e) {
+            FLog.e("MainActivity", "Error updating badge visibility", e);
+        }
+    }
+
+    /**
+     * Public method to refresh feature badges immediately.
+     * Called by fragments after marking features as seen.
+     */
+    public void refreshFeatureBadges() {
+        updateFeatureBadgeVisibility();
+    }
+
+    /**
+     * Check if Pro feature badge should be shown.
+     * Called from HomeFragment to determine badge visibility.
+     */
+    public boolean shouldShowProBadge() {
+        return NewFeatureManager.shouldShowBadge(this, "pro");
+    }
+
+    /**
+     * Present a fragment in the overlay container, avoiding duplicate dark blank
+     * state.
+     */
+    public void showOverlayFragment(Fragment fragment, String tag) {
+        View overlayContainer = findViewById(R.id.overlay_fragment_container);
+        if (overlayContainer == null)
+            return;
+        overlayContainer.setVisibility(View.VISIBLE);
+        overlayContainer.setAlpha(0f);
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.overlay_fragment_container, fragment, tag)
+                .addToBackStack(tag)
+                .commitAllowingStateLoss();
+        overlayContainer.animate().alpha(1f).setDuration(120).start();
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        // Build/package identity for update-channel verification (beta vs stable).
+        try {
+            FLog.d("UpdateCheck", "App identity: applicationId=" + BuildConfig.APPLICATION_ID
+                    + " package=" + getPackageName()
+                    + " isBeta=" + BuildConfig.APPLICATION_ID.endsWith(".beta")
+                    + " versionName=" + BuildConfig.VERSION_NAME);
+        } catch (Exception e) {
+            FLog.w("UpdateCheck", "App identity log failed: " + e.getMessage());
+        }
+        super.onCreate(savedInstanceState);
+        swipeTouchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
+        // Install splash screen (shows the themed windowSplashScreenAnimatedIcon)
+        SplashScreen.installSplashScreen(this);
+        // Apply user-selected theme AFTER splash so postSplashScreenTheme replaced by
+        // dynamic choice
+        applyTheme();
+
+        // possible)-----------
+        try {
+            if (this.sharedPreferencesManager == null) {
+                this.sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+            }
+            boolean cloakEarly = this.sharedPreferencesManager.isCloakRecentsEnabled();
+            if (cloakEarly) {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    try {
+                        this.setRecentsScreenshotEnabled(false);
+                    } catch (Throwable ignored) {
+                    }
+                }
+                try {
+                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Throwable t) {
+            FLog.w("Cloak", "early cloak apply fail", t);
+        }
+        // possible)-----------
+
+        // Initialize SharedPreferencesManager instance first
+        this.sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+
+        // Check if this is a first launch by looking for a special flag
+        boolean firstInstallChecked = sharedPreferencesManager.sharedPreferences
+                .getBoolean(Constants.FIRST_INSTALL_CHECKED_KEY, false);
+
+        if (!firstInstallChecked) {
+            // This is definitely a first install or app data was cleared
+            // Force onboarding to show by setting the flag to false
+            FLog.d("MainActivity", "First install detected! Forcing onboarding to show.");
+            sharedPreferencesManager.sharedPreferences.edit()
+                    .putBoolean(Constants.COMPLETED_ONBOARDING_KEY, false)
+                    .putBoolean(Constants.FIRST_INSTALL_CHECKED_KEY, true)
+                    .commit(); // Use commit() for immediate effect
+        }
+
+        // Check for onboarding BEFORE applying theme or language
+        boolean completedOnboarding = sharedPreferencesManager.sharedPreferences.getBoolean(Constants.COMPLETED_ONBOARDING_KEY, false);
+        boolean showOnboarding = sharedPreferencesManager.isShowOnboarding();
+        FLog.d("MainActivity", "Should show onboarding: " + showOnboarding);
+
+        if (showOnboarding) {
+            // Check if onboarding was actually completed (user went through it)
+            if (!completedOnboarding) {
+                // User has NOT completed onboarding yet - show full onboarding first
+                Intent intent = new Intent(this, com.fadcam.ui.OnboardingActivity.class);
+                startActivity(intent);
+            } else {
+                // User HAS completed onboarding - show What's New screen instead
+                // Skip WhatsNewActivity on Wear OS: WebView is not supported
+                if (!RuntimeCompat.isWatchDevice(this)) {
+                    Intent intent = new Intent(this, com.fadcam.ui.WhatsNewActivity.class);
+                    startActivity(intent);
+                    finish();
+                    return;
+                }
+            }
+            finish(); // Finish this activity so it's not in the back stack
+            return;
+        }
+
+        // Now that we know we're not showing onboarding, continue with normal
+        // initialization
+
+        // Load and apply the saved language preference before anything else
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE);
+        String savedLanguageCode = prefs.getString(Constants.LANGUAGE_KEY, Locale.getDefault().getLanguage());
+
+        applyLanguage(savedLanguageCode); // Apply the language preference
+
+        // Check if current locale is Pashto
+        if (getResources().getConfiguration().locale.getLanguage().equals("ps")) {
+            getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        }
+
+        // The onboarding check was already done at the beginning of onCreate
+
+        setContentView(R.layout.activity_main);
+
+        // Enable edge-to-edge display for Android 15 compatibility
+        enableEdgeToEdge();
+
+        setupBackPressedHandler();
+
+        // startup)-----------
+        try {
+            if (this.sharedPreferencesManager == null) {
+                this.sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+            }
+            boolean cloak = this.sharedPreferencesManager.isCloakRecentsEnabled();
+            if (cloak) {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    try {
+                        this.setRecentsScreenshotEnabled(false);
+                    } catch (Throwable ignored) {
+                    }
+                }
+                try {
+                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                } catch (Throwable ignored) {
+                }
+            } else {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    try {
+                        this.setRecentsScreenshotEnabled(true);
+                    } catch (Throwable ignored) {
+                    }
+                }
+                try {
+                    getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Throwable t) {
+            FLog.w("Cloak", "init cloak state fail", t);
+        }
+        // startup)-----------
+
+        // Fragment container for tab navigation
+        bottomNavigationView = findViewById(R.id.bottom_navigation);
+        if (bottomNavigationView != null) {
+            // Prevent Material from applying its own window insets to the nav view.
+            // The parent nav_container already handles insets; letting Material add its own
+            // bottom padding causes icons to shift above-center on gesture-nav devices.
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(
+                    bottomNavigationView, (v, insets) -> insets);
+            bottomNavigationView.setPadding(0, 0, 0, 0);
+
+            // Active-tab label mode: only the selected tab shows its label.
+            bottomNavigationView.setLabelVisibilityMode(NavigationBarView.LABEL_VISIBILITY_SELECTED);
+            bottomNavigationView.setItemActiveIndicatorEnabled(false);
+            // Center content (icon + label) vertically within the 64dp dock.
+            bottomNavigationView.setItemGravity(NavigationBarView.ITEM_GRAVITY_CENTER);
+            try {
+                bottomNavigationView.setItemActiveIndicatorColor(
+                        android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT));
+            } catch (Exception ignored) { }
+
+            // Apply rounded corners (24dp) via ViewOutlineProvider so the background and
+            // elevation shadow both follow the rounded pill shape reliably across themes.
+            // The background color is resolved from the XML attribute; we only set the shape.
+            final float cornerPx = android.util.TypedValue.applyDimension(
+                    android.util.TypedValue.COMPLEX_UNIT_DIP, 24,
+                    getResources().getDisplayMetrics());
+            bottomNavigationView.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                @Override
+                public void getOutline(android.view.View view, android.graphics.Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerPx);
+                }
+            });
+            bottomNavigationView.setClipToOutline(true);
+        }
+        
+        // Initialize SharedPreferencesManager before using it in fragments
+        sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+
+        // A simple overlay that we can show/hide to mask the UI before recents
+        // snapshot.
+        try {
+            android.widget.FrameLayout overlay = new android.widget.FrameLayout(this);
+            overlay.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+            overlay.setBackgroundColor(0xFF000000); // default solid black
+            overlay.setClickable(true); // swallow touches while visible
+            overlay.setFocusable(true);
+
+            // Centered decoy content
+            android.widget.LinearLayout content = new android.widget.LinearLayout(this);
+            content.setOrientation(android.widget.LinearLayout.VERTICAL);
+            content.setGravity(android.view.Gravity.CENTER);
+            android.widget.FrameLayout.LayoutParams clp = new android.widget.FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            content.setLayoutParams(clp);
+
+            cloakIconView = new android.widget.ImageView(this);
+            int iconSize = (int) (72 * getResources().getDisplayMetrics().density);
+            android.widget.LinearLayout.LayoutParams ilp = new android.widget.LinearLayout.LayoutParams(iconSize,
+                    iconSize);
+            cloakIconView.setLayoutParams(ilp);
+            cloakIconView.setImageResource(SharedPreferencesManager.getInstance(this).getCurrentAppIconResId());
+
+            cloakTitleView = new android.widget.TextView(this);
+            android.widget.LinearLayout.LayoutParams tlp = new android.widget.LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            tlp.topMargin = (int) (12 * getResources().getDisplayMetrics().density);
+            cloakTitleView.setLayoutParams(tlp);
+            cloakTitleView.setTextColor(0xFFFFFFFF);
+            cloakTitleView.setTextSize(18f);
+            cloakTitleView.setTypeface(cloakTitleView.getTypeface(), android.graphics.Typeface.BOLD);
+            cloakTitleView.setText(SharedPreferencesManager.getInstance(this).getAppIconDisplayName());
+
+            content.addView(cloakIconView);
+            content.addView(cloakTitleView);
+            overlay.addView(content);
+
+            overlay.setVisibility(View.GONE);
+            ViewGroup root = (ViewGroup) findViewById(android.R.id.content);
+            if (root != null) {
+                root.addView(overlay);
+            }
+            cloakOverlay = overlay;
+        } catch (Exception e) {
+            FLog.w("Cloak", "Failed to init cloak overlay", e);
+        }
+
+        // Save the original bottom nav background color for restoration later
+        try {
+            android.util.TypedValue typedValue = new android.util.TypedValue();
+            int colorBottomNavAttr = getResources().getIdentifier("colorBottomNav", "attr", getPackageName());
+            if (colorBottomNavAttr != 0 && getTheme().resolveAttribute(colorBottomNavAttr, typedValue, true)) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    originalBottomNavColor = getColor(typedValue.resourceId);
+                } else {
+                    originalBottomNavColor = getResources().getColor(typedValue.resourceId);
+                }
+                FLog.d("MainActivity", "Saved bottom nav color from colorBottomNav: " + Integer.toHexString(originalBottomNavColor));
+            }
+        } catch (Exception e) {
+            FLog.e("MainActivity", "Error getting bottom nav color from colorBottomNav", e);
+        }
+
+        // Initialize badge visibility
+        updateFeatureBadgeVisibility();
+
+        // Load initial fragment (Home tab) immediately with commitNow()
+        // Check if there's already a fragment (e.g., after configuration change)
+        if (savedInstanceState == null) {
+            // Fresh launch — load Home tab
+            switchFragment(0, false); // Uses commitNow() for instant, synchronous load
+            scheduleTabPrewarm();
+        } else {
+            // Configuration change / process death — FragmentManager restores all added fragments
+            // We need to find which was the current one and ensure others are hidden
+            int restoredPosition = savedInstanceState.getInt("current_fragment_position", 0);
+            androidx.fragment.app.FragmentManager fm = getSupportFragmentManager();
+            
+            // Hide all fragments except the current one, and restore currentFragmentPosition
+            for (int i = 0; i < 6; i++) {
+                String visibleTag = i == 0 ? getHomeFragmentTagForCurrentMode() : FRAGMENT_TAG_PREFIX + i;
+                for (String tag : getFragmentTagsForPosition(i)) {
+                    Fragment f = fm.findFragmentByTag(tag);
+                    if (f != null) {
+                        if (i == restoredPosition && tag.equals(visibleTag)) {
+                            fm.beginTransaction().show(f).commitNow();
+                        } else {
+                            fm.beginTransaction().hide(f).commitNow();
+                        }
+                    }
+                }
+            }
+            currentFragmentPosition = restoredPosition;
+            scheduleTabPrewarm();
+        }
+
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            int targetPosition = -1;
+            
+            if (itemId == R.id.navigation_home) {
+                targetPosition = 0;
+                // Keep the user's chosen icon applied (selection re-renders the item).
+                applyHomeNavIcon();
+            } else if (itemId == R.id.navigation_records) {
+                targetPosition = 1;
+            } else if (itemId == R.id.navigation_remote) {
+                targetPosition = 2;
+            } else if (itemId == R.id.navigation_faditor_mini) {
+                targetPosition = 3;
+            } else if (itemId == R.id.navigation_settings) {
+                targetPosition = 4;
+            } else if (itemId == R.id.navigation_lab) {
+                targetPosition = 5;
+            }
+            
+            if (targetPosition != -1) {
+                // Always use instant switch with fade animation
+                switchFragment(targetPosition, true);
+            }
+            return true;
+        });
+
+        // Dock reveal animation – REMOVED: the launch reveal (scale/fade/slide of
+        // the bottom nav dock) consumed resources and delayed the dock's presence
+        // on every cold start. The dock now simply renders in place.
+        // (DockRevealAnimator kept for reference but no longer invoked.)
+        View navContainer = findViewById(R.id.nav_container);
+        if (navContainer != null) {
+            navContainer.setScaleX(1f);
+            navContainer.setAlpha(1f);
+            navContainer.setTranslationY(0f);
+        }
+        if (bottomNavigationView != null) {
+            bottomNavigationView.setAlpha(1f);
+        }
+
+        // This is the path for the osmdroid tile cache
+        File osmdroidBasePath = new File(getCacheDir().getAbsolutePath(), "osmdroid");
+        File osmdroidTileCache = new File(osmdroidBasePath, "tiles");
+        org.osmdroid.config.Configuration.getInstance().setOsmdroidBasePath(osmdroidBasePath);
+        org.osmdroid.config.Configuration.getInstance().setOsmdroidTileCache(osmdroidTileCache);
+
+        // Add dynamic shortcut for torch
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
+            createDynamicShortcuts();
+        }
+
+        // The initial bar colors and transparency are now handled by switchFragment(0, false) 
+        applyHomeNavIcon();
+        setupHomeIconCustomization();
+        // or restored from saved state via restoreBarColorsForCurrentTab() inside handleTabSelected.
+
+        // theme change)-----------
+        try {
+            SharedPreferences reopenPrefs = sharedPreferencesManager.sharedPreferences;
+            boolean reopenAppearance = reopenPrefs.getBoolean("reopen_appearance_after_theme", false);
+            if (reopenAppearance) {
+                // Clear flag to avoid loops
+                reopenPrefs.edit().putBoolean("reopen_appearance_after_theme", false).apply();
+                //  Ensure Settings tab selected (index 4)
+                switchFragment(4, false);
+                // Post to allow SettingsHomeFragment attach
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    try {
+                        com.fadcam.ui.AppearanceSettingsFragment frag = new com.fadcam.ui.AppearanceSettingsFragment();
+                        OverlayNavUtil.show(this, frag, "AppearanceSettingsFragment");
+                        boolean reopenSheet = reopenPrefs.getBoolean("reopen_theme_sheet_after_theme", false);
+                        if (reopenSheet) {
+                            reopenPrefs.edit().putBoolean("reopen_theme_sheet_after_theme", false).apply();
+                            frag.getLifecycle().addObserver(new androidx.lifecycle.DefaultLifecycleObserver() {
+                                @Override
+                                public void onResume(androidx.lifecycle.LifecycleOwner owner) {
+                                    View v = frag.getView();
+                                    if (v != null) {
+                                        View row = v.findViewById(R.id.row_theme);
+                                        if (row != null) {
+                                            row.postDelayed(row::performClick, 100);
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    } catch (Exception e) {
+                        FLog.e("ThemeReopen", "Failed to reopen appearance fragment", e);
+                    }
+                }, 100);
+            }
+        } catch (Exception e) {
+            FLog.e("ThemeReopen", "Outer fail", e);
+        }
+        // theme change)-----------
+
+        // dpad_settings)-----------
+        // Register once so every settings sub-fragment gets proper D-pad focus when opened.
+        // The helper silently no-ops on non-settings fragments (those without content_scroll).
+        getSupportFragmentManager().registerFragmentLifecycleCallbacks(
+                new androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks() {
+                    @Override
+                    public void onFragmentViewCreated(
+                            @androidx.annotation.NonNull androidx.fragment.app.FragmentManager fm,
+                            @androidx.annotation.NonNull androidx.fragment.app.Fragment f,
+                            @androidx.annotation.NonNull View v,
+                            @androidx.annotation.Nullable android.os.Bundle savedInstanceState) {
+                        com.fadcam.ui.utils.DpadSettingsFocusHelper.setup(v);
+                    }
+                }, false /* non-recursive: only direct overlay_fragment_container children */);
+        // dpad_settings)-----------
+
+        // shortcuts)-----------
+        handleWidgetIntent();
+        // shortcuts)-----------
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        // Disable tab swipe when overlay fragment is visible.
+        View overlayContainer = findViewById(R.id.overlay_fragment_container);
+        boolean overlayVisible = overlayContainer != null && overlayContainer.getVisibility() == View.VISIBLE;
+        if (overlayVisible) {
+            return super.dispatchTouchEvent(ev);
+        }
+
+        final int action = ev.getActionMasked();
+        switch (action) {
+            case MotionEvent.ACTION_DOWN: {
+                swipeDownX = ev.getRawX();
+                swipeDownY = ev.getRawY();
+                swipeHandled = false;
+                View touched = findDeepestViewAt(getWindow().getDecorView(), ev.getRawX(), ev.getRawY());
+                swipeCandidate = !isSwipeExcludedTarget(touched);
+                if (previewGestureInProgress && Math.abs(previewGestureZoomRatio - 0.5f) >= 0.01f) {
+                    swipeCandidate = false;
+                }
+                // Rearrange mode: dragging quick-action icons must never trigger
+                // tab navigation or the sidebar-open swipe.
+                if (quickActionsRearrangeActive || modePillDragActive) {
+                    swipeCandidate = false;
+                }
+                break;
+            }
+            case MotionEvent.ACTION_MOVE: {
+                if (!swipeCandidate || swipeHandled) break;
+                // Rearrange mode may start mid-gesture (long-press) — kill the swipe.
+                if (quickActionsRearrangeActive || modePillDragActive) {
+                    swipeCandidate = false;
+                    break;
+                }
+                if (previewGestureInProgress && Math.abs(previewGestureZoomRatio - 0.5f) >= 0.01f) {
+                    swipeCandidate = false;
+                    break;
+                }
+                float dx = ev.getRawX() - swipeDownX;
+                float dy = ev.getRawY() - swipeDownY;
+                if (Math.abs(dy) > Math.abs(dx)) {
+                    swipeCandidate = false;
+                }
+                break;
+            }
+            case MotionEvent.ACTION_UP: {
+                if (!swipeCandidate || swipeHandled) break;
+                // Rearrange mode: never navigate tabs or open the sidebar.
+                if (quickActionsRearrangeActive || modePillDragActive) {
+                    swipeCandidate = false;
+                    break;
+                }
+                float dx = ev.getRawX() - swipeDownX;
+                float dy = ev.getRawY() - swipeDownY;
+                if (Math.abs(dx) > Math.max(swipeTouchSlop * 6f, 180f)
+                        && Math.abs(dx) > Math.abs(dy) * SWIPE_HORIZONTAL_RATIO) {
+                    // Check layout direction for RTL-aware swipe handling
+                    boolean isRtl = getWindow().getDecorView().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+                    boolean isSwipeBack = isRtl ? (dx < 0) : (dx > 0);
+                    
+                    // Swipe "back" from home tab opens sidebar instead of navigating
+                    if (isSwipeBack && currentFragmentPosition == 0) {
+                        openHomeSidebarFromSwipe();
+                        swipeHandled = true;
+                        swipeCandidate = false;
+                        return true;
+                    }
+                    // RTL-aware tab navigation: reverse direction in RTL layout
+                    int direction = isRtl ? (dx > 0 ? 1 : -1) : (dx < 0 ? 1 : -1);
+                    int target = currentFragmentPosition + direction;
+                    if (target >= 0 && target <= 5) {
+                        switchFragment(target, true);
+                        swipeHandled = true;
+                        swipeCandidate = false;
+                        return true;
+                    }
+                }
+                swipeCandidate = false;
+                break;
+            }
+            case MotionEvent.ACTION_CANCEL: {
+                swipeCandidate = false;
+                swipeHandled = false;
+                break;
+            }
+            default:
+                break;
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    /** Opens the home sidebar when the user swipes left from the home tab. */
+    private void openHomeSidebarFromSwipe() {
+        if (currentFragmentPosition == 0) {
+            androidx.fragment.app.FragmentManager fm = getSupportFragmentManager();
+            String tag = getFragmentTagForPosition(0);
+            androidx.fragment.app.Fragment frag = fm.findFragmentByTag(tag);
+            if (frag instanceof com.fadcam.ui.HomeFragment) {
+                com.fadcam.ui.HomeSidebarFragment sidebar = com.fadcam.ui.HomeSidebarFragment.newInstance();
+                sidebar.show(fm, "HomeSidebar");
+            }
+        }
+    }
+
+    private boolean isSwipeExcludedTarget(View touchedView) {
+        if (touchedView == null) return false;
+
+        View navContainer = findViewById(R.id.nav_container);
+        if (navContainer != null && isDescendantOf(touchedView, navContainer)) {
+            return true;
+        }
+
+        ViewParent parent = touchedView.getParent();
+        View current = touchedView;
+        while (current != null) {
+            if (current instanceof HorizontalScrollView) return true;
+            if (current.getId() == R.id.tutorial_scroll) return true;
+            // The mode switcher is included with <include id="mode_switcher">,
+            // which REPLACES the layout's own root id — check both.
+            if (current.getId() == R.id.mode_switcher || current.getId() == R.id.mode_switcher_root) return true;
+            if (current instanceof com.fadcam.ui.GalleryFastScroller) return true;
+            if (current instanceof com.google.android.material.chip.Chip) return true;
+            if (current instanceof com.google.android.material.chip.ChipGroup) return true;
+            if (current instanceof BottomNavigationView) return true;
+            if (current.getId() == R.id.textureView || current.getId() == R.id.fullscreenTextureView) return true;
+            if (current.getId() == R.id.cardPreview) {
+                // Home camera preview container: while the live preview is showing,
+                // swipes must not change tabs or open the sidebar. Overlays (preview
+                // hint, zoom HUD, grid) sit ON TOP of the TextureView, so a touch that
+                // starts on them never reaches the textureView check above — gate on
+                // the whole container instead.
+                View previewTexture = findViewById(R.id.textureView);
+                if (previewTexture != null && previewTexture.getVisibility() == View.VISIBLE) {
+                    return true;
+                }
+            }
+            if (current instanceof RecyclerView) {
+                RecyclerView rv = (RecyclerView) current;
+                if (rv.canScrollHorizontally(-1) || rv.canScrollHorizontally(1)) return true;
+            }
+            if (!(parent instanceof View)) break;
+            current = (View) parent;
+            parent = current.getParent();
+        }
+        return false;
+    }
+
+    public void setPreviewGestureInProgress(boolean inProgress, float zoomRatio) {
+        previewGestureInProgress = inProgress;
+        previewGestureZoomRatio = zoomRatio;
+    }
+
+    /** Called by HomeFragment when the quick-actions rearrange mode starts/ends. */
+    public void setQuickActionsRearrangeActive(boolean active) {
+        quickActionsRearrangeActive = active;
+    }
+
+    /** Called by the mode-switcher component while the pill is being dragged. */
+    public void setModePillDragActive(boolean active) {
+        modePillDragActive = active;
+    }
+
+    private boolean isDescendantOf(@NonNull View child, @NonNull View ancestor) {
+        ViewParent p = child.getParent();
+        while (p instanceof View) {
+            if (p == ancestor) return true;
+            p = p.getParent();
+        }
+        return false;
+    }
+
+    private View findDeepestViewAt(@NonNull View root, float rawX, float rawY) {
+        int[] loc = new int[2];
+        root.getLocationOnScreen(loc);
+        float x = rawX - loc[0];
+        float y = rawY - loc[1];
+        return findDeepestViewAtInternal(root, x, y);
+    }
+
+    private View findDeepestViewAtInternal(@NonNull View view, float x, float y) {
+        if (x < 0 || y < 0 || x > view.getWidth() || y > view.getHeight()) return null;
+        if (!(view instanceof ViewGroup)) return view;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = group.getChildCount() - 1; i >= 0; i--) {
+            View child = group.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE) continue;
+            // Account for the parent's scroll offset — child.getLeft() / getTop()
+            // return layout positions, which are NOT adjusted for scrolling.
+            float childX = x - child.getLeft() + group.getScrollX();
+            float childY = y - child.getTop() + group.getScrollY();
+            View target = findDeepestViewAtInternal(child, childX, childY);
+            if (target != null) return target;
+        }
+        return view;
+    }
+
+    private void handleWidgetIntent() {
+        Intent intent = getIntent();
+        if (intent != null) {
+            // Handle navigation to specific tab (e.g., from notification)
+            int navigateToTab = intent.getIntExtra("navigate_to_tab", -1);
+            if (navigateToTab >= 0) {
+                // Use a delay to ensure fragments are properly initialized
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    switchFragment(navigateToTab, true); // Use smooth fade
+                        
+                        // Trigger fragment visibility callback for Records tab
+                        if (navigateToTab == 1) {
+                            // Add extra delay to ensure fragment is fully visible before refreshing
+                            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                                try {
+                                    Fragment recordsFragment = getSupportFragmentManager()
+                                        .findFragmentByTag(FRAGMENT_TAG_PREFIX + navigateToTab);
+                                    if (recordsFragment instanceof RecordsFragment) {
+                                        RecordsFragment records = (RecordsFragment) recordsFragment;
+                                        records.onFragmentBecameVisible();
+                                        // Trigger refresh to show the newly recorded video
+                                        records.refreshList();
+                                        FLog.d("MainActivity", "Records tab refreshed after notification");
+                                    }
+                                } catch (Exception e) {
+                                    FLog.e("MainActivity", "Error triggering Records refresh", e);
+                                }
+                            }, 300); // Additional delay for refresh
+                        }
+                }, 200);
+                // Clear the extra so it doesn't trigger again on configuration change
+                intent.removeExtra("navigate_to_tab");
+            }
+            
+            // Handle widget intent to open shortcuts
+            if (intent.getBooleanExtra("open_shortcuts_widgets", false)) {
+                // Navigate to Settings tab and then open Shortcuts & Widgets screen
+                switchFragment(4, false); // Settings tab
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    try {
+                        com.fadcam.ui.ShortcutsSettingsFragment frag = new com.fadcam.ui.ShortcutsSettingsFragment();
+                        OverlayNavUtil.show(this, frag, "ShortcutsSettingsFragment");
+                    } catch (Exception e) {
+                        FLog.e("WidgetIntent", "Failed to open shortcuts fragment", e);
+                    }
+                }, 100);
+            }
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N_MR1)
+    private void createDynamicShortcuts() {
+        new ShortcutsManager(this).publishAllDynamic();
+    }
+
+    public void applyLanguage(String languageCode) {
+        // Get current app language
+        String currentLanguage = getResources().getConfiguration().locale.getLanguage();
+
+        // Only apply language change if it's different from the current language
+        if (!languageCode.equals(currentLanguage)) {
+            FLog.d("MainActivity", "Applying language: " + languageCode);
+            Locale locale = new Locale(languageCode);
+            Locale.setDefault(locale);
+
+            android.content.res.Configuration config = new android.content.res.Configuration();
+            config.setLocale(locale);
+            getApplicationContext().createConfigurationContext(config);
+
+            getResources().updateConfiguration(config, getResources().getDisplayMetrics());
+
+            // Recreate the activity to apply the changes
+            recreate();
+        } else {
+            FLog.d("MainActivity", "Language is already set to " + languageCode + "; no need to change.");
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@androidx.annotation.NonNull android.os.Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt("current_fragment_position", currentFragmentPosition);
+    }
+
+    /** Shows or hides the cloak overlay based on preference. */
+    private void applyCloakIfNeeded(boolean show) {
+        try {
+            if (cloakOverlay == null)
+                return;
+            // Refresh decoy visuals from current icon & label
+            if (cloakIconView != null)
+                cloakIconView.setImageResource(SharedPreferencesManager.getInstance(this).getCurrentAppIconResId());
+            if (cloakTitleView != null)
+                cloakTitleView.setText(SharedPreferencesManager.getInstance(this).getAppIconDisplayName());
+            if (show) {
+                cloakOverlay.setAlpha(1f);
+                cloakOverlay.setVisibility(View.VISIBLE);
+            } else {
+                cloakOverlay.setVisibility(View.GONE);
+                cloakOverlay.setAlpha(1f);
+            }
+        } catch (Exception e) {
+            FLog.w("Cloak", "applyCloakIfNeeded failed", e);
+        }
+    }
+
+    /**
+     * Immediately applies or removes recents cloaking flags at runtime based on
+     * user toggle.
+     * This lets the change take effect without restarting the app.
+     */
+    public void applyCloakPreferenceNow(boolean enable) {
+        try {
+            if (enable) {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    try {
+                        this.setRecentsScreenshotEnabled(false);
+                    } catch (Throwable ignored) {
+                    }
+                }
+                try {
+                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                } catch (Throwable ignored) {
+                }
+            } else {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    try {
+                        this.setRecentsScreenshotEnabled(true);
+                    } catch (Throwable ignored) {
+                    }
+                }
+                try {
+                    getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                } catch (Throwable ignored) {
+                }
+            }
+            // Ensure decoy overlay is hidden during active use
+            applyCloakIfNeeded(false);
+        } catch (Exception e) {
+            FLog.w("Cloak", "applyCloakPreferenceNow failed", e);
+        }
+    }
+
+    private void setupBackPressedHandler() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                // Unified: handle any visible overlay fragment (trash or settings)
+                if (handleOverlayBack()) {
+                    return;
+                }
+
+                // If we're not on the home tab, go to home tab first before exiting
+                if (getCurrentFragmentPosition() != 0) {
+                    switchFragment(0, true); // Enable animation
+                } else {
+                    // Check if we should skip this back handling
+                    if (skipNextBackHandling) {
+                        skipNextBackHandling = false;
+                        setEnabled(false);
+                        getOnBackPressedDispatcher().onBackPressed();
+                        return;
+                    }
+
+                    // We're on the home tab, implement double back press to exit
+                    if (doubleBackToExitPressedOnce) {
+                        // Remove the callback to prevent it from executing after app close
+                        backPressHandler.removeCallbacks(backPressRunnable);
+                        setEnabled(false);
+                        getOnBackPressedDispatcher().onBackPressed();
+                        return;
+                    }
+
+                    // First back press - show toast and set flag
+                    doubleBackToExitPressedOnce = true;
+                    Toast.makeText(MainActivity.this, getString(R.string.press_back_again_exit), Toast.LENGTH_SHORT).show();
+
+                    // Reset the flag after a delay
+                    backPressHandler.postDelayed(backPressRunnable, BACK_PRESS_DELAY);
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Unified: handle any visible overlay fragment (trash or settings)
+        if (handleOverlayBack()) {
+            return;
+        }
+
+        // If we're not on the home tab, go to home tab first before exiting
+        if (getCurrentFragmentPosition() != 0) {
+            switchFragment(0, true); // Enable animation
+        } else {
+            // Check if we should skip this back handling
+            if (skipNextBackHandling) {
+                skipNextBackHandling = false;
+                super.onBackPressed();
+                return;
+            }
+
+            // We're on the home tab, implement double back press to exit
+            if (doubleBackToExitPressedOnce) {
+                // Remove the callback to prevent it from executing after app close
+                backPressHandler.removeCallbacks(backPressRunnable);
+                super.onBackPressed();
+                return;
+            }
+
+            // First back press - show toast and set flag
+            this.doubleBackToExitPressedOnce = true;
+            Toast.makeText(this, getString(R.string.press_back_again_exit), Toast.LENGTH_SHORT).show();
+
+            // Reset the flag after a delay
+            backPressHandler.postDelayed(backPressRunnable, BACK_PRESS_DELAY);
+        }
+    }
+
+    /**
+     * Handle D-pad navigation for Android TV. Routes DPAD_LEFT/RIGHT to tab switching
+     * and passes other keys to current fragment.
+     */
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // ── Volume shutter ──────────────────────────────────────────
+        // Long press = start/stop recording, single click = FadShot photo,
+        // double click = switch camera. Active only on the home tab while the
+        // preference is enabled.
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            if (isVolumeShutterActive()) {
+                if (event.getRepeatCount() == 0) {
+                    // First key-down: arm the shutter, wait for long-press or release
+                    volumeShutterActiveKeyCode = keyCode;
+                    volumeShutterLongPressTriggered = false;
+                } else if (volumeShutterActiveKeyCode == keyCode && !volumeShutterLongPressTriggered) {
+                    // Key repeat = long press → toggle recording
+                    volumeShutterLongPressTriggered = true;
+                    // A click was pending from a previous tap — cancel it, this is now a long press
+                    cancelPendingVolumeClick();
+                    triggerVolumeShutterLongPress();
+                }
+                return true; // Consume so the system volume doesn't change
+            }
+            volumeShutterActiveKeyCode = 0;
+        }
+
+        Fragment currentFragment = getCurrentFragment();
+        int currentPos = getCurrentFragmentPosition();
+
+        // D-pad up/down: move focus explicitly so it always works even after state
+        // transitions that disable views (e.g. Start→recording causes buttonPauseResume to
+        // be disabled, Android loses the focus chain and DPAD stops working).
+        if (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+            int direction = (keyCode == KeyEvent.KEYCODE_DPAD_UP) ? View.FOCUS_UP : View.FOCUS_DOWN;
+            View focused = getCurrentFocus();
+            // If a real descendant has focus, try to traverse from it
+            if (focused != null && focused.getId() != R.id.main_root_layout) {
+                View next = focused.focusSearch(direction);
+                if (next != null && next != focused && next.getId() != R.id.main_root_layout) {
+                    next.requestFocus();
+                    return true;
+                }
+            }
+            // Fallback: focus is lost (root grabbed it or no focused view).
+            // Try known anchors first, then fall back to ANY first focusable descendant.
+            // Only fall back if focus is truly missing (null or root). If a real view has
+            // focus but focusSearch failed, leave it alone so we don't reset the user's position.
+            View currentlyFocused = getCurrentFocus();
+            boolean focusLost = currentlyFocused == null || currentlyFocused.getId() == R.id.main_root_layout;
+            if (focusLost && currentFragment != null && currentFragment.getView() != null) {
+                View anchor = currentFragment.getView().findViewById(R.id.btnHamburgerMenu);
+                if (anchor == null) anchor = currentFragment.getView().findViewById(R.id.buttonStartStop);
+                if (anchor != null && anchor.isEnabled()) {
+                    anchor.requestFocus();
+                    return true;
+                }
+                // Generic fallback: find first focusable, visible, enabled descendant
+                View first = com.fadcam.ui.utils.DpadSettingsFocusHelper.findFirstFocusable(currentFragment.getView());
+                if (first != null) {
+                    first.requestFocus();
+                    return true;
+                }
+            }
+            return true;
+        }
+        
+        // D-pad right: navigate to next tab
+        if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            if (currentFragment instanceof HomeFragment) {
+                HomeFragment homeFragment = (HomeFragment) currentFragment;
+                if (homeFragment.onKeyDown(keyCode, event)) {
+                    return true; // Fragment consumed it (e.g., dialog navigation)
+                }
+            }
+            // Switch to next tab if not at end
+            if (currentPos < 4) {
+                switchFragment(currentPos + 1, true);
+                return true;
+            }
+            return true;
+        }
+        
+        // D-pad left: navigate to previous tab or stay on home
+        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+            if (currentFragment instanceof HomeFragment) {
+                HomeFragment homeFragment = (HomeFragment) currentFragment;
+                if (homeFragment.onKeyDown(keyCode, event)) {
+                    return true; // Fragment consumed it
+                }
+            }
+            // Switch to previous tab if not at start
+            if (currentPos > 0) {
+                switchFragment(currentPos - 1, true);
+                return true;
+            }
+            return true;
+        }
+        
+        // D-pad center/ENTER: let current fragment handle it
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+            if (currentFragment instanceof HomeFragment) {
+                if (((HomeFragment) currentFragment).onKeyDown(keyCode, event)) {
+                    return true;
+                }
+            }
+        }
+        
+        return super.onKeyDown(keyCode, event);
+    }
+
+    /**
+     * Volume shutter key-up: a short press captures a FadShot photo, unless a
+     * second press arrives within the double-click window (then it switches
+     * camera instead). A long press already toggled recording, so key-up only
+     * resets the shutter state.
+     */
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            if (volumeShutterActiveKeyCode == keyCode && isVolumeShutterActive()) {
+                if (!volumeShutterLongPressTriggered) {
+                    // Short press: wait briefly to distinguish single from double click
+                    if (pendingVolumeSingleClickRunnable != null) {
+                        // Second click within the window → double click → switch camera
+                        volumeShutterHandler.removeCallbacks(pendingVolumeSingleClickRunnable);
+                        pendingVolumeSingleClickRunnable = null;
+                        triggerVolumeShutterCameraSwitch();
+                    } else {
+                        pendingVolumeSingleClickRunnable = () -> {
+                            pendingVolumeSingleClickRunnable = null;
+                            // Re-check so we never fire after the user left the home tab
+                            if (isVolumeShutterActive()) {
+                                triggerVolumeShutterClick();
+                            }
+                        };
+                        volumeShutterHandler.postDelayed(
+                                pendingVolumeSingleClickRunnable, VOLUME_DOUBLE_CLICK_TIMEOUT_MS);
+                    }
+                } else {
+                    // Long press already toggled recording — drop any pending click
+                    cancelPendingVolumeClick();
+                }
+                volumeShutterActiveKeyCode = 0;
+                volumeShutterLongPressTriggered = false;
+                return true; // Consume so the system volume doesn't change
+            }
+            cancelPendingVolumeClick();
+            volumeShutterActiveKeyCode = 0;
+            volumeShutterLongPressTriggered = false;
+        }
+        return super.onKeyUp(keyCode, event);
+    }
+
+    /**
+     * Whether the volume shutter is currently active: home tab visible AND the
+     * preference is enabled. Falls back to disabled on any error.
+     */
+    private boolean isVolumeShutterActive() {
+        if (getCurrentFragmentPosition() != 0) return false;
+        try {
+            if (sharedPreferencesManager == null) {
+                sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+            }
+            return sharedPreferencesManager.isVolumeShutterEnabled();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Route a volume-shutter long press to the home fragment (start/stop recording). */
+    private void triggerVolumeShutterLongPress() {
+        Fragment current = getCurrentFragment();
+        if (current instanceof HomeFragment) {
+            ((HomeFragment) current).handleVolumeShutterLongPress();
+        }
+    }
+
+    /** Route a volume-shutter click to the home fragment (capture FadShot photo). */
+    private void triggerVolumeShutterClick() {
+        Fragment current = getCurrentFragment();
+        if (current instanceof HomeFragment) {
+            ((HomeFragment) current).handleVolumeShutterClick();
+        }
+    }
+
+    /** Route a volume-shutter double click to the home fragment (switch camera). */
+    private void triggerVolumeShutterCameraSwitch() {
+        Fragment current = getCurrentFragment();
+        if (current instanceof HomeFragment) {
+            ((HomeFragment) current).handleVolumeShutterCameraSwitch();
+        }
+    }
+
+    /** Drop any scheduled single-click action (e.g. after a long press or leaving home). */
+    private void cancelPendingVolumeClick() {
+        if (pendingVolumeSingleClickRunnable != null) {
+            volumeShutterHandler.removeCallbacks(pendingVolumeSingleClickRunnable);
+            pendingVolumeSingleClickRunnable = null;
+        }
+    }
+
+    /**
+     * Get current fragment that's visible (not hidden).
+     */
+    private Fragment getCurrentFragment() {
+        androidx.fragment.app.FragmentManager fm = getSupportFragmentManager();
+        for (String tag : getFragmentTagsForPosition(currentFragmentPosition)) {
+            Fragment fragment = fm.findFragmentByTag(tag);
+            if (fragment != null && fragment.isAdded() && !fragment.isHidden()) {
+                return fragment;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // state)-----------
+        applyCloakIfNeeded(false); // hide decoy overlay while active
+        try {
+            boolean cloak = SharedPreferencesManager.getInstance(this).isCloakRecentsEnabled();
+            if (cloak) {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    try {
+                        this.setRecentsScreenshotEnabled(false);
+                    } catch (Throwable ignored) {
+                    }
+                }
+                try {
+                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                } catch (Throwable ignored) {
+                }
+            } else {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    try {
+                        this.setRecentsScreenshotEnabled(true);
+                    } catch (Throwable ignored) {
+                    }
+                }
+                try {
+                    getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Throwable t) {
+            FLog.w("Cloak", "onResume preference apply fail", t);
+        }
+        // state)-----------
+
+        // Restore status/nav bar colors for the current tab
+        // With hide/show navigation, fragments stay alive and don't re-trigger color setup
+        // So we must restore the correct colors when app returns from background
+        restoreBarColorsForCurrentTab();
+
+        // Update badge visibility for new features
+        updateFeatureBadgeVisibility();
+
+        // Restore language settings
+        this.sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+        String savedLanguageCode = sharedPreferencesManager.sharedPreferences.getString(Constants.LANGUAGE_KEY,
+                Locale.getDefault().getLanguage());
+        applyLanguage(savedLanguageCode);
+
+        // Create shortcuts if needed (Android 7.1+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
+            createDynamicShortcuts();
+        }
+
+        // Handle any pending intents
+        Intent intent = getIntent();
+        if (intent != null && Constants.ACTION_SHOW_RECORDS.equals(intent.getAction())) {
+            switchFragment(1, false); // Navigate to Records tab
+        }
+
+        // Set up the back press behavior with the newer API
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+                @Override
+                public void handleOnBackPressed() {
+                    // Unified: generic overlay back handling (trash & settings)
+                    if (handleOverlayBack()) {
+                        return; // handled
+                    }
+
+                    // If we're not on the home tab, go to home tab first before exiting
+                    if (getCurrentFragmentPosition() != 0) {
+                        switchFragment(0, true); // Enable animation
+                    } else {
+                        // Check if we should skip this back handling
+                        if (skipNextBackHandling) {
+                            skipNextBackHandling = false;
+                            setEnabled(false);
+                            getOnBackPressedDispatcher().onBackPressed();
+                            return;
+                        }
+
+                        // We're on the home tab, implement double back press to exit
+                        if (doubleBackToExitPressedOnce) {
+                            // Remove the callback to prevent it from executing after app close
+                            backPressHandler.removeCallbacks(backPressRunnable);
+                            setEnabled(false);
+                            getOnBackPressedDispatcher().onBackPressed();
+                            return;
+                        }
+
+                        // First back press - show toast and set flag
+                        doubleBackToExitPressedOnce = true;
+                        Toast.makeText(MainActivity.this, getString(R.string.press_back_again_exit), Toast.LENGTH_SHORT).show();
+
+                        // Reset the flag after a delay
+                        backPressHandler.postDelayed(backPressRunnable, BACK_PRESS_DELAY);
+                    }
+                }
+            });
+        }
+    }
+
+    @Override
+     protected void onPause() {
+        // Cancel any pending volume-shutter click (e.g. app backgrounded mid double-click)
+        cancelPendingVolumeClick();
+        volumeShutterActiveKeyCode = 0;
+        volumeShutterLongPressTriggered = false;
+        // Show cloak just before going into background to affect recents snapshot
+        try {
+            if (sharedPreferencesManager == null) {
+                sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+            }
+            boolean enabled = sharedPreferencesManager.isCloakRecentsEnabled();
+            if (enabled) {
+                // secure/recents)-----------
+                applyCloakIfNeeded(true);
+                // For Android 14+, explicitly disable recents screenshots
+                if (Build.VERSION.SDK_INT >= 34) {
+                    try {
+                        this.setRecentsScreenshotEnabled(false);
+                    } catch (Throwable ignored) {
+                    }
+                }
+                // On older devices, set FLAG_SECURE to force a black snapshot in recents
+                try {
+                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                } catch (Throwable ignored) {
+                }
+                // secure/recents)-----------
+            }
+        } catch (Exception e) {
+            FLog.w("Cloak", "onPause cloak fail", e);
+        }
+        super.onPause();
+    }
+
+    @Override
+    protected void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        // Additional safeguard when user leaves to recents directly
+        try {
+            if (sharedPreferencesManager == null) {
+                sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+            }
+            boolean enabled = sharedPreferencesManager.isCloakRecentsEnabled();
+            if (enabled) {
+                // secure/recents)-----------
+                applyCloakIfNeeded(true);
+                if (Build.VERSION.SDK_INT >= 34) {
+                    try {
+                        this.setRecentsScreenshotEnabled(false);
+                    } catch (Throwable ignored) {
+                    }
+                }
+                try {
+                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                } catch (Throwable ignored) {
+                }
+                // secure/recents)-----------
+            }
+        } catch (Exception e) {
+            FLog.w("Cloak", "onUserLeaveHint cloak fail", e);
+        }
+    }
+
+    /** Handles back press for any visible overlay fragment (settings or trash). */
+    private boolean handleOverlayBack() {
+        View overlayContainer = findViewById(R.id.overlay_fragment_container);
+        if (overlayContainer == null || overlayContainer.getVisibility() != View.VISIBLE)
+            return false;
+        Fragment top = getSupportFragmentManager().findFragmentById(R.id.overlay_fragment_container);
+        if (top == null)
+            return false;
+        // Use popLevel: pops one sub-fragment if stacked, dismisses overlay if only one
+        OverlayNavUtil.popLevel(this);
+        return true;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Clean up handler callbacks to prevent memory leaks
+        backPressHandler.removeCallbacks(backPressRunnable);
+    }
+
+    // Helper to resolve theme color attribute
+    private int resolveThemeColor(Context context, int attr) {
+        android.util.TypedValue typedValue = new android.util.TypedValue();
+        android.content.res.Resources.Theme theme = context.getTheme();
+        theme.resolveAttribute(attr, typedValue, true);
+        return typedValue.data;
+    }
+
+    private void initTheme() {
+        // Apply the saved theme if one exists
+        sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+        String savedTheme = sharedPreferencesManager.sharedPreferences.getString(Constants.PREF_APP_THEME,
+                Constants.DEFAULT_APP_THEME);
+        applyTheme(savedTheme);
+    }
+
+    private void applyTheme(String themeName) {
+        // Use DEFAULT_APP_THEME as fallback if themeName is null
+        if (themeName == null) {
+            themeName = Constants.DEFAULT_APP_THEME;
+        }
+
+        // Apply the appropriate theme based on name
+        if ("Faded Night".equals(themeName) ||
+                "AMOLED".equals(themeName) ||
+                "Amoled".equals(themeName) ||
+                "amoled".equals(themeName)) {
+            setTheme(R.style.Theme_FadCam_Amoled);
+
+            // Standardize theme name to "Faded Night"
+            if (!"Faded Night".equals(themeName)) {
+                sharedPreferencesManager.sharedPreferences.edit()
+                        .putString(Constants.PREF_APP_THEME, "Faded Night")
+                        .apply();
+            }
+
+            getWindow().setNavigationBarColor(getResources().getColor(R.color.amoled_background, getTheme()));
+        } else if ("Crimson Bloom".equals(themeName)) {
+            // Red theme
+            setTheme(R.style.Theme_FadCam_Red);
+            getWindow().setNavigationBarColor(getResources().getColor(R.color.red_theme_background_dark, getTheme()));
+        } else if ("Premium Gold".equals(themeName)) {
+            // Gold theme
+            setTheme(R.style.Theme_FadCam_Gold);
+            getWindow().setNavigationBarColor(getResources().getColor(R.color.gold_theme_background_dark, getTheme()));
+        } else if ("Silent Forest".equals(themeName)) {
+            // Silent Forest theme
+            setTheme(R.style.Theme_FadCam_SilentForest);
+            getWindow().setNavigationBarColor(
+                    getResources().getColor(R.color.silentforest_theme_background_dark, getTheme()));
+        } else if ("Shadow Alloy".equals(themeName)) {
+            // Shadow Alloy theme
+            setTheme(R.style.Theme_FadCam_ShadowAlloy);
+            getWindow().setNavigationBarColor(
+                    getResources().getColor(R.color.shadowalloy_theme_background_dark, getTheme()));
+        } else if ("Pookie Pink".equals(themeName)) {
+            // Pookie Pink theme
+            setTheme(R.style.Theme_FadCam_PookiePink);
+            getWindow().setNavigationBarColor(
+                    getResources().getColor(R.color.pookiepink_theme_background_dark, getTheme()));
+        } else if ("Snow Veil".equals(themeName)) {
+            // Snow Veil theme
+            setTheme(R.style.Theme_FadCam_SnowVeil);
+            getWindow().setNavigationBarColor(
+                    getResources().getColor(R.color.snowveil_theme_background_light, getTheme()));
+
+            // Set status bar icons to dark for light theme
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        } else if ("Midnight Dusk".equals(themeName)) {
+            // Always use the custom always-dark theme for Midnight Dusk
+            setTheme(R.style.Theme_FadCam_MidnightDusk);
+            getWindow().setNavigationBarColor(getResources().getColor(R.color.gray, getTheme()));
+        } else {
+            // If we get an unknown theme name, use the system default
+            // This should be the Crimson Bloom theme as defined in
+            // Constants.DEFAULT_APP_THEME
+            if ("Crimson Bloom".equals(Constants.DEFAULT_APP_THEME)) {
+                setTheme(R.style.Theme_FadCam_Red);
+                getWindow()
+                        .setNavigationBarColor(getResources().getColor(R.color.red_theme_background_dark, getTheme()));
+            } else {
+                // Fallback to base theme
+                setTheme(R.style.Base_Theme_FadCam);
+                getWindow().setNavigationBarColor(getResources().getColor(R.color.gray, getTheme()));
+            }
+        }
+    }
+
+    /**
+     * Apply the selected theme from preferences before any views are created
+     * This ensures the theme is consistently applied across the entire app
+     */
+    private void applyTheme() {
+        // Guard: Skip theme application for watch devices
+        // Watch uses dedicated WatchMainActivity with Wear OS-optimized themes
+        if (isWatchDevice()) {
+            FLog.w("MainActivity", "applyTheme() called on watch device - skipping phone theme application");
+            return;
+        }
+
+        // Get shared preferences and current theme
+        SharedPreferencesManager sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+        String themeName = sharedPreferencesManager.sharedPreferences.getString(Constants.PREF_APP_THEME,
+                Constants.DEFAULT_APP_THEME);
+
+        // Ensure we have a valid theme name, default to Crimson Bloom if null or empty
+        if (themeName == null || themeName.isEmpty()) {
+            themeName = Constants.DEFAULT_APP_THEME;
+            sharedPreferencesManager.sharedPreferences.edit()
+                    .putString(Constants.PREF_APP_THEME, Constants.DEFAULT_APP_THEME)
+                    .apply();
+        }
+
+        // Apply appropriate theme based on name
+        if ("Crimson Bloom".equals(themeName)) {
+            setTheme(R.style.Theme_FadCam_Red);
+        } else if ("Faded Night".equals(themeName)) {
+            setTheme(R.style.Theme_FadCam_Amoled);
+        } else if ("Midnight Dusk".equals(themeName)) {
+            setTheme(R.style.Theme_FadCam_MidnightDusk); // Always use the custom always-dark theme
+        } else if ("Premium Gold".equals(themeName)) {
+            setTheme(R.style.Theme_FadCam_Gold);
+        } else if ("Silent Forest".equals(themeName)) {
+            setTheme(R.style.Theme_FadCam_SilentForest);
+        } else if ("Shadow Alloy".equals(themeName)) {
+            setTheme(R.style.Theme_FadCam_ShadowAlloy);
+        } else if ("Pookie Pink".equals(themeName)) {
+            setTheme(R.style.Theme_FadCam_PookiePink);
+        } else if ("Snow Veil".equals(themeName)) {
+            setTheme(R.style.Theme_FadCam_SnowVeil);
+        } else {
+            // Default to Crimson Bloom for any unknown values
+            setTheme(R.style.Theme_FadCam_Red);
+            // Save the corrected theme value
+            sharedPreferencesManager.sharedPreferences.edit()
+                    .putString(Constants.PREF_APP_THEME, "Crimson Bloom")
+                    .apply();
+        }
+
+        // Update default clock color based on theme
+        sharedPreferencesManager.updateDefaultClockColorForTheme();
+    }
+
+    /**
+     * Public wrapper so settings fragments can request a theme change.
+     * Persists preference already written by caller and recreates activity to apply
+     * resources.
+     */
+    public void applyThemeFromSettings(String themeName) {
+        applyTheme(themeName);
+        recreate();
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        FLog.d("MainActivity", "Configuration changed - orientation: " +
+                (newConfig.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE ? "landscape"
+                        : "portrait"));
+
+        // Notify all fragments about the orientation change
+        notifyFragmentsOfOrientationChange(newConfig.orientation);
+    }
+
+    /**
+     * Handle orientation changes by detaching and re-attaching ALL added fragments in separate transactions.
+     * With hide/show navigation, fragments stay alive in memory — their views
+     * are never re-inflated on orientation change. We must use TWO separate transactions:
+     * 1. Detach all and commit
+     * 2. Re-attach all with correct layouts (e.g., layout-land/fragment_home.xml)
+     * Using separate transactions prevents FragmentManager from optimizing away the detach+attach.
+     */
+    private void notifyFragmentsOfOrientationChange(int orientation) {
+        try {
+            androidx.fragment.app.FragmentManager fm = getSupportFragmentManager();
+            Fragment currentFragment = findVisibleFragmentForPosition(fm, currentFragmentPosition);
+            if (currentFragment == null) {
+                FLog.w("MainActivity", "Orientation: no visible fragment to refresh");
+                return;
+            }
+
+            if (currentFragment instanceof HomeFragment) {
+                ((HomeFragment) currentFragment).prepareForOrientationChange();
+            }
+
+            // Recreate only the visible fragment view. Recreating every hidden/prewarmed tab
+            // caused unstable navigation on some Samsung devices after rotating to landscape.
+            fm.beginTransaction().detach(currentFragment).commitNowAllowingStateLoss();
+            fm.beginTransaction().attach(currentFragment).commitNowAllowingStateLoss();
+
+            if (currentFragment instanceof HomeFragment) {
+                HomeFragment home = (HomeFragment) currentFragment;
+                android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+                h.postDelayed(home::recoverPreviewAfterOrientationChange, 120L);
+                h.postDelayed(home::recoverPreviewAfterOrientationChange, 450L);
+                h.postDelayed(home::recoverPreviewAfterOrientationChange, 950L);
+            }
+
+            FLog.d("MainActivity", "Orientation changed to " +
+                    (orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE ? "landscape" : "portrait") +
+                    " — visible fragment view refreshed");
+        } catch (Exception e) {
+            FLog.e("MainActivity", "Error handling orientation change", e);
+        }
+    }
+
+    /**
+     * Restore status bar, navigation bar, and bottom nav colors based on the current tab.
+     * Called from onResume to ensure colors are correct when returning from background.
+     */
+    private void restoreBarColorsForCurrentTab() {
+        if (currentFragmentPosition == 2) {
+            // Remote tab uses black bars
+            setBottomNavColor(0xFF000000);
+            setStatusBarColor(0xFF000000);
+            setNavigationBarColor(0xFF000000);
+        } else {
+            // All other tabs use theme default colors
+            setBottomNavColor(0);
+            setStatusBarColor(0);
+            setNavigationBarColor(0);
+        }
+    }
+
+    /**
+     * Enable edge-to-edge display following Android 15 guidelines
+     */
+    private void enableEdgeToEdge() {
+        // Enable edge-to-edge display
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        // Make system bars transparent
+        getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            getWindow().setStatusBarContrastEnforced(false);
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
+
+        // Handle window insets properly
+        View rootView = findViewById(android.R.id.content);
+        View navContainer = findViewById(R.id.nav_container);
+        View statusBarScrim = findViewById(R.id.status_bar_scrim);
+        View dockGradientScrim = findViewById(R.id.dock_focus_gradient_scrim);
+        final int navBasePaddingStart = navContainer != null ? navContainer.getPaddingStart() : 0;
+        final int navBasePaddingTop = navContainer != null ? navContainer.getPaddingTop() : 0;
+        final int navBasePaddingEnd = navContainer != null ? navContainer.getPaddingEnd() : 0;
+        final int navBasePaddingBottom = navContainer != null ? navContainer.getPaddingBottom() : 0;
+        // Base gradient height in pixels (180dp), extended by systemBars.bottom so it always
+        // peeks above the nav pill on API 35+ edge-to-edge devices.
+        final int dockGradientBaseHeightPx = Math.round(180 * getResources().getDisplayMetrics().density);
+        ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, insets) -> {
+            androidx.core.graphics.Insets systemBars = insets
+                    .getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars());
+
+            // Check if running on TV form factor (TV or Wear OS smartwatch)
+            boolean isTV = getPackageManager().hasSystemFeature(PackageManager.FEATURE_TELEVISION);
+            boolean isWear = getPackageManager().hasSystemFeature("android.hardware.type.watch");
+            boolean isFormFactorTV = isTV || isWear;
+
+            // Apply insets to main content areas
+            View fragmentContainer = findViewById(R.id.fragment_container);
+            View overlayContainer = findViewById(R.id.overlay_fragment_container);
+            if (fragmentContainer != null) {
+                // fragment_container spans the full screen (behind the dock).
+                // paddingTop  → pushes content below the floating status_bar_scrim.
+                // paddingBottom → reserves space for the dock so layoutControls seats
+                //                 just above it; clipToPadding=false allows visual overflow
+                //                 behind/below the dock for the gradient and other effects.
+                // On TV/Wear: no status bar, no dock → all padding = 0.
+                ((ViewGroup) fragmentContainer).setClipToPadding(false);
+                ((ViewGroup) fragmentContainer).setClipChildren(false);
+                int contentTopPadding = isFormFactorTV ? 0 : systemBars.top;
+                // Fragment spans full screen (floating dock UX):
+                // paddingBottom = only the system gesture bar so the last interactive
+                // element is never hidden behind the gesture area.
+                // Dock clearance is handled per-fragment via layout_marginBottom=72dp.
+                int contentBottomPadding = isFormFactorTV ? 0 : systemBars.bottom;
+                fragmentContainer.setPadding(
+                        systemBars.left, contentTopPadding,
+                        systemBars.right, contentBottomPadding);
+            }
+            if (overlayContainer != null) {
+                // Apply same insets to overlay container (for Trash, Settings sheets, etc.)
+                // These fragments appear on top and need proper padding for system bars.
+                // On TV/Wear force top=0 (no status bar) and bottom=0 (no nav bar pill).
+                int overlayTop = isFormFactorTV ? 0 : systemBars.top;
+                int overlayBottom = isFormFactorTV ? 0 : systemBars.bottom;
+                overlayContainer.setPadding(
+                        systemBars.left, overlayTop,
+                        systemBars.right, overlayBottom);
+            }
+
+            // Update status bar scrim height directly via LayoutParams.
+            // The scrim floats over fragment_container via elevation="11dp".
+            // On TV/Wear: hide scrim (GONE). On phones: set to actual status bar height.
+            if (statusBarScrim != null) {
+                if (isFormFactorTV) {
+                    // GONE is definitive — a GONE view never renders regardless of constraints.
+                    // Setting height=0 on a MATCH_CONSTRAINT view doesn't reliably suppress it.
+                    statusBarScrim.setVisibility(View.GONE);
+                    FLog.i("MainActivity", "TV/Wear: status_bar_scrim set to GONE");
+                } else {
+                    statusBarScrim.setVisibility(View.VISIBLE);
+                    int scrimHeight = systemBars.top;
+                    ViewGroup.LayoutParams scrimLp = statusBarScrim.getLayoutParams();
+                    if (scrimLp != null && scrimLp.height != scrimHeight) {
+                        scrimLp.height = scrimHeight;
+                        statusBarScrim.setLayoutParams(scrimLp);
+                    }
+                }
+            }
+
+            if (navContainer != null) {
+                // In landscape, nav bar shifts to the right (systemBars.right > 0).
+                // Apply right inset alongside bottom so dock doesn't clip under the nav bar.
+                navContainer.setPadding(
+                        navBasePaddingStart + systemBars.left,
+                        navBasePaddingTop,
+                        navBasePaddingEnd + systemBars.right,
+                        navBasePaddingBottom + systemBars.bottom);
+            }
+
+            // Extend gradient scrim height by systemBars.bottom so it always peeks above
+            // the nav pill even on API 35+ where the window extends behind the nav bar.
+            if (dockGradientScrim != null) {
+                ViewGroup.LayoutParams lp = dockGradientScrim.getLayoutParams();
+                int requiredHeight = dockGradientBaseHeightPx + systemBars.bottom;
+                if (lp != null && lp.height != requiredHeight) {
+                    lp.height = requiredHeight;
+                    dockGradientScrim.setLayoutParams(lp);
+                }
+            }
+
+            return insets;
+        });
+    }
+
+    // ========== Fragment-based Navigation System ==========
+    
+    private int currentFragmentPosition = -1; // -1 means no fragment loaded yet
+    private static final String FRAGMENT_TAG_PREFIX = "tab_fragment_";
+    private static final String HOME_FRAGMENT_TAG_FADCAM = FRAGMENT_TAG_PREFIX + "0_fadcam";
+    private static final String HOME_FRAGMENT_TAG_FADREC = FRAGMENT_TAG_PREFIX + "0_fadrec";
+
+    private String getHomeFragmentTagForCurrentMode() {
+        String currentMode = sharedPreferencesManager.getCurrentRecordingMode();
+        return Constants.MODE_FADREC.equals(currentMode)
+                ? HOME_FRAGMENT_TAG_FADREC
+                : HOME_FRAGMENT_TAG_FADCAM;
+    }
+
+    private String getFragmentTagForPosition(int position) {
+        if (position == 0) {
+            return getHomeFragmentTagForCurrentMode();
+        }
+        return FRAGMENT_TAG_PREFIX + position;
+    }
+
+    private java.util.List<String> getFragmentTagsForPosition(int position) {
+        if (position == 0) {
+            return Arrays.asList(HOME_FRAGMENT_TAG_FADCAM, HOME_FRAGMENT_TAG_FADREC);
+        }
+        return Collections.singletonList(FRAGMENT_TAG_PREFIX + position);
+    }
+
+    private Fragment findVisibleFragmentForPosition(androidx.fragment.app.FragmentManager fm, int position) {
+        for (String tag : getFragmentTagsForPosition(position)) {
+            Fragment fragment = fm.findFragmentByTag(tag);
+            if (fragment != null && fragment.isAdded() && !fragment.isHidden()) {
+                return fragment;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Applies the user's chosen home nav icon (default house / fighter jet / pilot).
+     */
+    private void applyHomeNavIcon() {
+        if (bottomNavigationView == null) return;
+        try {
+            if (sharedPreferencesManager == null) {
+                sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+            }
+            String choice = sharedPreferencesManager.getHomeIcon();
+            int res;
+            if (Constants.HOME_ICON_JET.equals(choice)) {
+                res = R.drawable.fighter_jet_top_view;
+            } else if (Constants.HOME_ICON_PILOT.equals(choice)) {
+                res = R.drawable.pilot_steering_white;
+            } else {
+                res = R.drawable.ic_house;
+            }
+            android.view.MenuItem home = bottomNavigationView.getMenu().findItem(R.id.navigation_home);
+            if (home != null) home.setIcon(res);
+        } catch (Exception e) {
+            FLog.w("MainActivity", "applyHomeNavIcon failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Long-press the home nav item to pick which icon it shows.
+     */
+    private void setupHomeIconCustomization() {
+        if (bottomNavigationView == null) return;
+        bottomNavigationView.post(() -> {
+            try {
+                if (bottomNavigationView.getChildCount() == 0) return;
+                View menuView = bottomNavigationView.getChildAt(0);
+                if (!(menuView instanceof ViewGroup)) return;
+                ViewGroup group = (ViewGroup) menuView;
+                if (group.getChildCount() == 0) return;
+                View homeItem = group.getChildAt(0); // menu order: home is first
+                if (homeItem != null) {
+                    homeItem.setOnLongClickListener(v -> {
+                        showHomeIconPicker();
+                        return true;
+                    });
+                }
+            } catch (Exception e) {
+                FLog.w("MainActivity", "setupHomeIconCustomization failed: " + e.getMessage());
+            }
+        });
+    }
+
+    private void showHomeIconPicker() {
+        final String resultKey = "picker_result_home_icon";
+        getSupportFragmentManager().setFragmentResultListener(resultKey, this, (k, b) -> {
+            String sel = b.getString(com.fadcam.ui.picker.PickerBottomSheetFragment.BUNDLE_SELECTED_ID);
+            if (sel != null) {
+                try {
+                    if (sharedPreferencesManager == null) {
+                        sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+                    }
+                    sharedPreferencesManager.setHomeIcon(sel);
+                    applyHomeNavIcon();
+                } catch (Exception e) {
+                    FLog.w("MainActivity", "home icon selection failed: " + e.getMessage());
+                }
+            }
+        });
+        java.util.ArrayList<com.fadcam.ui.picker.OptionItem> items = new java.util.ArrayList<>();
+        // Pilot is the default — list it first.
+        items.add(new com.fadcam.ui.picker.OptionItem(Constants.HOME_ICON_PILOT,
+                getString(R.string.home_icon_pilot),
+                R.drawable.pilot_steering_white));
+        items.add(new com.fadcam.ui.picker.OptionItem(Constants.HOME_ICON_JET,
+                getString(R.string.home_icon_jet),
+                R.drawable.fighter_jet_top_view));
+        items.add(new com.fadcam.ui.picker.OptionItem(Constants.HOME_ICON_DEFAULT,
+                getString(R.string.home_icon_home),
+                R.drawable.ic_house));
+        String current = Constants.HOME_ICON_DEFAULT;
+        try {
+            if (sharedPreferencesManager == null) {
+                sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
+            }
+            current = sharedPreferencesManager.getHomeIcon();
+        } catch (Exception ignored) {
+        }
+        com.fadcam.ui.picker.PickerBottomSheetFragment sheet =
+                com.fadcam.ui.picker.PickerBottomSheetFragment.newInstance(
+                        getString(R.string.home_icon_picker_title), items, current, resultKey, null);
+        sheet.show(getSupportFragmentManager(), "home_icon_picker");
+    }
+
+    private void scheduleTabPrewarm() {
+        View container = findViewById(R.id.fragment_container);
+        if (container == null) {
+            return;
+        }
+        container.postDelayed(() -> {
+            if (isFinishing() || isDestroyed()) {
+                return;
+            }
+            prewarmFragmentIfMissing(1);
+        }, 400L);
+    }
+
+    private void prewarmFragmentIfMissing(int position) {
+        if (position == currentFragmentPosition) {
+            return;
+        }
+        androidx.fragment.app.FragmentManager fm = getSupportFragmentManager();
+        String targetTag = getFragmentTagForPosition(position);
+        Fragment existing = fm.findFragmentByTag(targetTag);
+        if (existing != null) {
+            return;
+        }
+        try {
+            Fragment prewarmedFragment = createFragmentForPosition(position);
+            fm.beginTransaction()
+                    .add(R.id.fragment_container, prewarmedFragment, targetTag)
+                    .hide(prewarmedFragment)
+                    .commitNowAllowingStateLoss();
+        } catch (Exception e) {
+            FLog.w("FragmentNav", "prewarmFragmentIfMissing: Failed for position " + position, e);
+        }
+    }
+    
+    /**
+     * Switch to a fragment at the specified position using hide/show for instant switching.
+     * Fragments are kept alive in memory — views are preserved, animations continue,
+     * and subsequent tab switches are instant (no inflation or setup overhead).
+     * Public method accessible to fragments for programmatic navigation.
+     * @param position Tab position (0-5)
+     * @param animate Whether to animate the transition
+     */
+    public void switchFragment(int position, boolean animate) {
+        if (position == currentFragmentPosition) {
+            return; // Already showing this fragment
+        }
+        
+        androidx.fragment.app.FragmentManager fm = getSupportFragmentManager();
+        androidx.fragment.app.FragmentTransaction transaction = fm.beginTransaction();
+        
+        // Set custom fade animations
+        if (animate) {
+            transaction.setCustomAnimations(
+                R.anim.fade_in,  // Fast 120ms fade in
+                R.anim.fade_out  // Fast 100ms fade out
+            );
+        }
+        
+        // Hide the currently visible fragment (if any)
+        if (currentFragmentPosition >= 0) {
+            Fragment currentFragment = findVisibleFragmentForPosition(fm, currentFragmentPosition);
+            if (currentFragment != null) {
+                transaction.hide(currentFragment);
+            }
+        }
+        
+        // Show existing fragment or add new one for the target position
+        String targetTag = getFragmentTagForPosition(position);
+        Fragment targetFragment = fm.findFragmentByTag(targetTag);
+        
+        if (targetFragment != null) {
+            // Fragment already added — just show it (instant, no view inflation)
+            transaction.show(targetFragment);
+        } else {
+            // First time visiting this tab — create and add
+            targetFragment = createFragmentForPosition(position);
+            transaction.add(R.id.fragment_container, targetFragment, targetTag);
+        }
+        
+        // Use commitNow() for instant switching (no lag), commit() for animated transitions
+        if (animate) {
+            transaction.commit(); // Async for animation
+        } else {
+            transaction.commitNow(); // Immediate for instant switching and initial load
+        }
+        
+        currentFragmentPosition = position;
+        
+        // Handle tab-specific logic (same as old onPageSelected)
+        handleTabSelected(position);
+    }
+    
+    /**
+     * Create a new fragment instance for the given tab position.
+     * Only called the first time a tab is visited — subsequent visits reuse the existing fragment.
+     */
+    private Fragment createFragmentForPosition(int position) {
+        // Create new fragment if not found
+        Fragment newFragment;
+        switch (position) {
+            case 0:
+                // Home tab - check current mode
+                String currentMode = sharedPreferencesManager.getCurrentRecordingMode();
+                if (com.fadcam.Constants.MODE_FADREC.equals(currentMode)) {
+                    newFragment = com.fadcam.fadrec.ui.FadRecHomeFragment.newInstance();
+                } else {
+                    newFragment = new com.fadcam.ui.HomeFragment();
+                }
+                break;
+            case 1:
+                newFragment = new RecordsFragment();
+                break;
+            case 2:
+                newFragment = new RemoteFragment();
+                break;
+            case 3:
+                newFragment = new FaditorMiniFragment();
+                break;
+            case 4:
+                newFragment = new com.fadcam.ui.SettingsHomeFragment();
+                break;
+            case 5:
+                newFragment = new com.fadcam.forensics.ui.ForensicIntelligenceFragment();
+                break;
+            default:
+                newFragment = new com.fadcam.ui.HomeFragment();
+        }
+        
+        return newFragment;
+    }
+    
+    /**
+     * Handle tab-specific logic when a tab is selected.
+     * Replaces old ViewPager2.OnPageChangeCallback logic.
+     */
+    private void handleTabSelected(int position) {
+        // Update bottom nav selection
+        int navItemId = getNavItemIdForPosition(position);
+        if (navItemId != -1) {
+            bottomNavigationView.setSelectedItemId(navItemId);
+        }
+        
+        // Restore correct bar colors for the selected tab
+        restoreBarColorsForCurrentTab();
+        
+        // Handle tab-specific callbacks
+        switch (position) {
+            case 1: // Records tab
+                // Trigger lazy loading
+                try {
+                    Fragment recordsFragment = getSupportFragmentManager()
+                        .findFragmentByTag(FRAGMENT_TAG_PREFIX + position);
+                    if (recordsFragment instanceof RecordsFragment) {
+                        ((RecordsFragment) recordsFragment).onFragmentBecameVisible();
+                    }
+                } catch (Exception e) {
+                    FLog.e("MainActivity", "Error triggering Records lazy load", e);
+                }
+                break;
+            case 5: // Lab tab
+                // Mark feature as seen
+                com.fadcam.ui.utils.NewFeatureManager.markFeatureAsSeen(this, "lab");
+                refreshFeatureBadges();
+                break;
+        }
+    }
+    
+    /**
+     * Get navigation item ID for a given tab position.
+     */
+    private int getNavItemIdForPosition(int position) {
+        switch (position) {
+            case 0: return R.id.navigation_home;
+            case 1: return R.id.navigation_records;
+            case 2: return R.id.navigation_remote;
+            case 3: return R.id.navigation_faditor_mini;
+            case 4: return R.id.navigation_settings;
+            case 5: return R.id.navigation_lab;
+            default: return -1;
+        }
+    }
+    
+    /**
+     * Get the current fragment position.
+     */
+    public int getCurrentFragmentPosition() {
+        return currentFragmentPosition;
+    }
+
+    /**
+     * Force recreate the fragment at the specified position.
+     * Used for mode switching (FadCam <-> FadRec) where the fragment class changes
+     * but the position stays the same.
+     * @param position Tab position to recreate
+     */
+    public void forceRecreateFragment(int position, View continuityView) {
+        if (position == 0) {
+            switchHomeModeFragment();
+            return;
+        }
+        
+        androidx.fragment.app.FragmentManager fm = getSupportFragmentManager();
+        String tag = FRAGMENT_TAG_PREFIX + position;
+        Fragment newFragment = createFragmentForPosition(position);
+        View continuityOverlay = createContinuityOverlay(continuityView);
+        androidx.fragment.app.FragmentTransaction tx = fm.beginTransaction();
+        tx.setReorderingAllowed(true);
+        tx.replace(R.id.fragment_container, newFragment, tag);
+        
+        // Apply visibility state: only show if it's the current position
+        if (position == currentFragmentPosition) {
+            tx.show(newFragment);
+        } else {
+            tx.hide(newFragment);
+        }
+
+        tx.commitNow();
+        clearContinuityOverlayAfterNextDraw(continuityOverlay, newFragment);
+    }
+
+    private void switchHomeModeFragment() {
+        androidx.fragment.app.FragmentManager fm = getSupportFragmentManager();
+        String targetTag = getHomeFragmentTagForCurrentMode();
+        Fragment currentFragment = findVisibleFragmentForPosition(fm, 0);
+        Fragment targetFragment = fm.findFragmentByTag(targetTag);
+
+        if (targetFragment == currentFragment && targetFragment != null) {
+            return;
+        }
+
+        androidx.fragment.app.FragmentTransaction tx = fm.beginTransaction();
+        tx.setReorderingAllowed(true);
+
+        if (currentFragment != null) {
+            tx.hide(currentFragment);
+        }
+
+        if (targetFragment != null) {
+            tx.show(targetFragment);
+        } else {
+            targetFragment = createFragmentForPosition(0);
+            tx.add(R.id.fragment_container, targetFragment, targetTag);
+        }
+
+        tx.commitNow();
+    }
+
+    private View createContinuityOverlay(View sourceView) {
+        if (sourceView == null || sourceView.getWidth() <= 0 || sourceView.getHeight() <= 0) {
+            return null;
+        }
+
+        View root = findViewById(R.id.main_root_layout);
+        if (!(root instanceof ViewGroup)) {
+            return null;
+        }
+
+        Bitmap bitmap;
+        try {
+            bitmap = Bitmap.createBitmap(sourceView.getWidth(), sourceView.getHeight(), Bitmap.Config.ARGB_8888);
+        } catch (IllegalArgumentException e) {
+            FLog.w("FragmentNav", "createContinuityOverlay: Unable to allocate bitmap", e);
+            return null;
+        }
+
+        Canvas canvas = new Canvas(bitmap);
+        sourceView.draw(canvas);
+
+        ImageView overlayView = new ImageView(this);
+        overlayView.setImageBitmap(bitmap);
+        overlayView.setClickable(false);
+        overlayView.setFocusable(false);
+        overlayView.setElevation(1000f);
+
+        int[] sourceLocation = new int[2];
+        int[] rootLocation = new int[2];
+        sourceView.getLocationOnScreen(sourceLocation);
+        root.getLocationOnScreen(rootLocation);
+
+        overlayView.layout(0, 0, sourceView.getWidth(), sourceView.getHeight());
+        overlayView.setX(sourceLocation[0] - rootLocation[0]);
+        overlayView.setY(sourceLocation[1] - rootLocation[1]);
+        ((ViewGroup) root).getOverlay().add(overlayView);
+        return overlayView;
+    }
+
+    private void clearContinuityOverlayAfterNextDraw(View overlayView, Fragment newFragment) {
+        if (overlayView == null) {
+            return;
+        }
+
+        View root = findViewById(R.id.main_root_layout);
+        if (!(root instanceof ViewGroup)) {
+            return;
+        }
+
+        View fragmentView = newFragment.getView();
+        View anchorView = fragmentView != null ? fragmentView : findViewById(R.id.fragment_container);
+        if (anchorView == null) {
+            ((ViewGroup) root).getOverlay().remove(overlayView);
+            return;
+        }
+
+        View finalAnchorView = anchorView;
+        finalAnchorView.post(() -> finalAnchorView.postDelayed(() -> overlayView.animate()
+                .alpha(0f)
+                .setDuration(120L)
+                .withEndAction(() -> ((ViewGroup) root).getOverlay().remove(overlayView)), 120L));
+    }
+
+    /**
+     * Check if the device is a Wear OS watch.
+     * Prevents phone-specific theme code from running on watch devices.
+     * @return true if device has watch hardware feature, false otherwise
+     */
+    private boolean isWatchDevice() {
+        return getPackageManager().hasSystemFeature("android.hardware.type.watch");
+    }
+}

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sbc_gesture_front_unsupported">Front-camera gesture scoring is unavailable: this phone does not support simultaneous front + rear cameras. Select Rear hidden zone instead.</string>
+    <string name="sbc_gesture_front_runtime_error">Gesture scoring: the front analysis camera could not start. The rear match recording continues unchanged.</string>
+</resources>

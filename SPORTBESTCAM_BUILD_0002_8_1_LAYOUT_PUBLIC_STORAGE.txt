@@ -1,0 +1,55 @@
+SportBestCam Build 0002.8.1 - Sport Layout & Public Storage Safety
+
+SPORT MODE LANDSCAPE UI
+- Camera / Screen / Mic mode switcher is moved out of the folding left card rail.
+- The mode switcher now spans the full Android safe width, almost to the system-navigation edge.
+- It stays available and correctly sized whether the information rail is folded or expanded.
+- The Sport control rail (Timer, Settings, Mic, Torch, Shot, Fullscreen, REC, Pause, More)
+  is moved out of the right preview panel and becomes a root-level control rail.
+- The complete Sport control rail is centered on the physical screen safe area instead
+  of being centered only inside the right-hand preview panel.
+- Both normal landscape and reverse-landscape use the real Android left/right insets.
+- Preview/cards stop above the centered Sport rail so controls no longer steal preview geometry.
+
+SAVED FILE LOCATION
+- Home/Stats now displays the default video location:
+  Movies/SportBestCam
+- If custom SAF storage is selected, the UI says that a custom folder is being used.
+- These labels are localized in English, Romanian, and all existing SportBestCam languages.
+
+UNINSTALL-SAFE DEFAULT STORAGE
+- Finished default video recordings are archived to public MediaStore under:
+  Movies/SportBestCam/...
+- Camera source/category subfolders are preserved (for example Camera/Back).
+- The encoder still records to the proven app-private working file while REC is active.
+  After muxer/fMP4 finalization, the completed file is copied to public MediaStore.
+- Source byte count is verified before the private source is deleted.
+- On any copy failure, the private original is KEPT. There is no destructive fallback.
+- The archive never moves MP4 files while Camera/Dual/Screen recording is active,
+  including paused recordings.
+- Normal app uninstall therefore does not remove already archived videos.
+
+SPORTSHOT / SCREENSHOTS
+- On Android 10+, SportShot images now save directly to:
+  Pictures/SportBestCam/SportShot/<source>/
+- Existing custom SAF storage remains unchanged.
+- Older Android versions keep the safe legacy fallback and are migrated by the archive pass.
+
+MIGRATION / COMPATIBILITY
+- At app startup, completed media left by older SportBestCam/FadCam builds in
+  Android/data/<package>/files is migrated to the public user-owned folders.
+- A second safety archive runs after recording-complete/segment-complete events.
+- A final background safety pass catches editor/mini-app media that may not emit
+  the normal recording completion event.
+- Records now scans BOTH old private trees simultaneously:
+  SportBestCam + FadCam.
+- Records also scans the new MediaStore folders using content:// URIs.
+- Temporary duplicate private/public entries are de-duplicated with the public entry preferred.
+- Custom SAF storage behavior is preserved and not duplicated into MediaStore.
+
+IMPORTANT
+- This protects recordings made with this build and migrates any private recordings
+  that still exist when this build starts.
+- It cannot restore a recording already erased by Android during a previous uninstall.
+- Camera, Media3, rotation fix 0002.7.0, Gesture Scoring 0002.8.0, Auto Goal,
+  timer, fullscreen, FadRec, streaming and Remote logic are not removed.

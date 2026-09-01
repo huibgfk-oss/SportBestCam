@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sbc_gesture_source_title">Gesture Scoring source</string>
+    <string name="sbc_gesture_source_label">Gesture source: %1$s</string>
+    <string name="sbc_gesture_source_front">Front camera (dual camera)</string>
+    <string name="sbc_gesture_source_rear_hidden">Rear camera hidden zones</string>
+    <string name="sbc_gesture_source_front_info">Uses a hidden front-camera analysis stream while the rear camera records. Requires simultaneous front + rear camera support. The recorded video is not cropped.</string>
+    <string name="sbc_gesture_source_rear_info">Fallback for phones without dual-camera support. Use the extreme left/right edges of the rear preview. Only while this mode is enabled, the final video is center-cropped so those gesture zones are not recorded.</string>
+</resources>

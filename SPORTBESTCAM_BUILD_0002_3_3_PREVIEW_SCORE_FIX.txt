@@ -1,0 +1,6 @@
+SportBestCam Build 0002.3.3
+- Fixes overlapping right-side quick actions in Sport Mode by restoring a fixed slot canvas.
+- Adds an always-visible Handball score rail to Fullscreen Preview.
+- Fullscreen score rail supports home/away +1/-1, timer start/pause and half toggle.
+- Score changes are stored in the same handball_match preferences and sync back to Home.
+- Keeps existing camera, orientation, folder, Media3 and UI fixes.

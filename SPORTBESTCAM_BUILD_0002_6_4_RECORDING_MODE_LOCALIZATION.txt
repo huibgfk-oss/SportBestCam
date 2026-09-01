@@ -1,0 +1,37 @@
+SportBestCam Build 0002.6.4 - Recording Mode & Localization
+
+Recording profiles
+- Adds Match recording and Simple video modes.
+- Match recording keeps SportBestCam match HUD, score, teams, match timer and Auto Goal.
+- Simple video hides match HUD/teams/score/match timer/Auto Goal from preview and fullscreen.
+- Simple video does not burn match information into the saved video.
+- The normal SportBestCam watermark/logo continues to follow the existing watermark setting.
+- Recording profile cannot be changed while a recording is already active, preventing mixed-content files.
+
+Video filenames
+- Match recordings use descriptive filenames:
+  SportBestCam_<sport-or-title>_<Team-A>_vs_<Team-B>_yyyyMMdd_HHmmss.mp4
+- Simple video uses the standard filename:
+  SportBestCam_yyyyMMdd_HHmmss.mp4
+- Team/title filename parts are sanitized and length-limited.
+- Split recordings keep _partN suffixes.
+- Stream_ output keeps its existing naming contract.
+- Records timestamp parsing now accepts:
+  SportBestCam_yyyyMMdd_HHmmss.mp4
+  SportBestCam_<title>_<A>_vs_<B>_yyyyMMdd_HHmmss.mp4
+  SportBestCam_<title>_<A>_vs_<B>_yyyyMMdd_HHmmss_partN.mp4
+  legacy FadCam_yyyyMMdd_HHmmss.mp4
+  so sorting, NEW badges and date grouping continue to work.
+
+Localization
+- New SportBestCam UI strings use English as the default resource language.
+- The SportBestCam additions are translated for every language already exposed by the app:
+  Chinese, Arabic, French, Turkish, Pashto, Indonesian, Italian, Greek,
+  German, Spanish, Estonian and Russian.
+- Romanian is added to the language selector and has dedicated values-ro SportBestCam resources.
+- Internal preference keys and technical identifiers remain language-neutral.
+
+Compatibility
+- Camera, Media3, recording pipeline, pause/resume, storage, FadRec, streaming,
+  Remote, gallery and legacy FadCam storage compatibility are not removed.
+- Build includes all UI fixes through 0002.6.3b.

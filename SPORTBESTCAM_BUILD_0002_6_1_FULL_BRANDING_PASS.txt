@@ -1,0 +1,17 @@
+SportBestCam Build 0002.6.1 Full Branding Pass
+
+- Replaces the ugly legacy black/red FadCam BETA launcher icon in the DEBUG source set.
+- Uses a SportBestCam-specific camera lens + sport ball icon with yellow accent and NO FadCam text.
+- Updates normal, round, adaptive foreground and Play Store icons.
+- Debug app label becomes "SportBestCam Beta" instead of "FadCam Beta".
+- Gradle APK output name is forced to SportBestCam_...apk.
+- GitHub workflow applies a second safety rename if any older build task still emits FadCam_*.apk.
+- Visible debug-log title/branding is changed to SportBestCam.
+- Visible Remote web branding is changed to SportBestCam where safe.
+
+Intentionally NOT renamed:
+- Java package/applicationId com.fadcam
+- internal class names such as FadCamBridge/FadCamRemote
+- SharedPreferences keys and legacy storage constants
+- theme/style/resource identifiers
+These are internal compatibility identifiers; renaming them would risk breaking upgrades, settings, remote streaming, or existing recordings.

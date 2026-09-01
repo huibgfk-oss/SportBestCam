@@ -1,0 +1,6 @@
+SportBestCam Build 0002.3.4 Layout Fix
+- Moves Sport Mode quick actions left, clear of the Android navigation edge.
+- Fullscreen Handball rail uses FadCam's transparent dock background.
+- Handball rail dynamically moves below FadCam's top controls when they are visible.
+- Rail returns to the top when FadCam controls auto-hide.
+- Keeps score controls permanently usable without overlapping FadCam top/bottom docks.

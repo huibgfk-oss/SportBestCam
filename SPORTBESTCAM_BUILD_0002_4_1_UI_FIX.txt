@@ -1,0 +1,11 @@
+SportBestCam Build 0002.4.1 UI Fix
+- Based directly on branded SportBestCam Build 0002.4.0.
+- Fullscreen score rail uses native transparent dock style and sits permanently below native top bar.
+- Removes redundant START/PAUSE button from fullscreen score rail; native bottom controls remain.
+- Explicit green +1 / neutral -1 score buttons in portrait and landscape.
+- Portrait Sport UI uses compact fixed-width controls with no wrapped labels.
+- Landscape native camera controls shifted left, clear of the right Android navigation edge.
+- Quick-action canvas widened and moved inward.
+- ECHIPE dialog is compact and responsive: two rows in landscape, vertical in portrait.
+- Team fields use white background, dark text, visible hints and neutral borders.
+- Keeps rebrand, logo/watermark, camera rotation, folder, Media3 and recording fixes.

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="gray">#1f1e23</color>
+    <color name="gray500">#9E9E9E</color>
+    <color name="base_theme_slider_inactive">#3A2A4A</color> <!-- Very dark purple-tinted gray for midnight dusk theme -->
+    <color name="redPastel">#E43C3C</color>
+    <color name="greenPastel">#77DD77</color>
+    <color name="colorPrimary">#cfbafd</color>
+    <color name="material_on_surface_stroke">#cfbafd</color>
+    <color name="material_on_surface_emphasis_medium">@color/white</color>
+    <color name="torch_off">#757575</color>
+    <color name="torch_on">#FFB300</color>
+    <color name="button_start">#4CAF50</color>
+    <color name="button_stop">#FF0000</color>
+    <color name="button_pause">#FFA500</color>
+    <color name="button_record">#00FF00</color>
+    <color name="danger_red">#D32F2F</color>
+    <color name="danger_red_light">#F44336</color>
+    <color name="colorError">#D32F2F</color>
+    <color name="colorErrorDisabled">#884444</color> <!-- Muted red for disabled error state -->
+    <color name="green">#4CAF50</color>
+
+    <!-- Added for Trash Item Remaining Time Display -->
+    <color name="colorWarning">#FFA726</color> <!-- Orange A400 -->
+    <color name="orange_accent">#FFA726</color>
+    <color name="gray_text_light">#BDBDBD</color> <!-- Grey 400 -->
+    <color name="gray_text_very_light">#E0E0E0</color> <!-- Grey 300 -->
+
+    <color name="gold">#FFD700</color>
+
+    <!-- Fix Start: Add color references for new theme attributes for maintainability -->
+    <color name="colorTopBar">@color/colorPrimary</color>
+    <color name="colorBottomNav">@color/colorPrimary</color>
+    <color name="colorHeading">@color/colorPrimary</color>
+    <color name="colorButton">@color/colorPrimary</color>
+    <color name="colorToggle">@color/greenPastel</color>
+    <color name="colorDialog">@color/gray</color>
+    <color name="colorStatusBar">@color/gray</color>
+    <!-- Fix End: Add color references for new theme attributes for maintainability -->
+
+    <color name="dark_red_card">#3B1818</color> <!-- Very dark, muted red for storage card -->
+    <color name="dark_purple_bar">#231942</color> <!-- Very dark purple for dark mode top bar and navbar -->
+
+    <color name="gray_button_filled">#232323</color> <!-- Much darker gray for filled button in all themes -->
+    
+    <!-- Darker color for storage card across all themes -->
+    <color name="dark_card_background">#171717</color>
+    
+    <!-- Extra dark color for storage card in Crimson theme -->
+    
+    <!-- Picker colors for Midnight Dusk theme with purple colors -->
+    <color name="picker_button_background">#cfbafd</color> <!-- Purple primary -->
+    <color name="picker_button_text">#1A1A1A</color> <!-- Dark text -->
+    <color name="picker_icon_tint">#cfbafd</color> <!-- Purple primary -->
+    <color name="picker_slider_active">#cfbafd</color> <!-- Purple primary active -->
+    <color name="picker_slider_inactive">#3A2A4A</color> <!-- Very dark purple-tinted inactive -->
+    <color name="crimson_dark_card_background">#1E0E0E</color>
+
+    <color name="midnight_dusk_bg">#111113</color>
+    <!-- Translucent variant of danger red used for destructive cards/backgrounds -->
+    <color name="danger_red_translucent">#33D32F2F</color>
+    <!-- Slightly stronger translucent color used for the ripple pressed state on destructive rows -->
+    <color name="danger_red_ripple">#55D32F2F</color>
+    
+    <!-- Segmented Control Colors -->
+    <color name="segmented_control_background">#2A2A2A</color>
+    <color name="segmented_control_border">#404040</color>
+    <color name="segment_active_color">@color/redPastel</color>
+
+    <!-- Home rail neutral surfaces -->
+    <color name="home_rail_bg_start">#1B1C21</color>
+    <color name="home_rail_bg_end">#15161A</color>
+    <color name="home_rail_card_surface">#23252C</color>
+    <color name="home_rail_card_border">#343841</color>
+    <color name="home_rail_segmented_surface">#262830</color>
+    <color name="home_rail_segmented_border">#3A3E48</color>
+    
+    <!-- Annotation Menu Colors (Dynamic) -->
+    <color name="annotation_heading_accent">#4CAF50</color> <!-- Green accent for headings -->
+    <color name="annotation_menu_background">#2A2A2A</color> <!-- Lighter for better contrast with dark cards -->
+    <color name="annotation_border_subtle">#404040</color> <!-- Subtle border for cards/sections -->
+    <color name="annotation_border_divider">#505050</color> <!-- Lighter divider for better visibility -->
+    <color name="annotation_border_dark">#1E1E22</color> <!-- Subtle dark border that matches overlay theme -->
+    <color name="annotation_active_border">#4CAF50</color> <!-- Green border for active state -->
+    <color name="annotation_button_bg">#2A2A2A</color> <!-- Consistent background for all tool buttons -->
+    <color name="picker_divider_color">#40FFFFFF</color> <!-- Material wheel divider -->
+    <color name="picker_selected_text_color">#FFFFFF</color> <!-- Material wheel selected text -->
+</resources>

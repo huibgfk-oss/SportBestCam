@@ -1,0 +1,52 @@
+SportBestCam Build 0002.8.0 - Gesture Scoring
+
+Gesture commands
+- LEFT control edge:
+  - 1 raised finger -> Team A +1
+  - 2 raised fingers -> Team A -1
+- RIGHT control edge:
+  - 1 raised finger -> Team B +1
+  - 2 raised fingers -> Team B -1
+
+Safety / false-positive controls
+- Gesture Scoring is OFF by default and persists in Match Settings.
+- It is active only in Match recording mode while video is actively recording.
+- It pauses automatically when video is paused.
+- Only the outer left/right control zones are accepted.
+- The detected hand must be sufficiently large/near the camera and enter from an
+  outside or lower edge; distant player hands in the middle of the court are ignored.
+- The same gesture must remain stable for the configured hold time.
+- Default hold time: 0.8 s.
+- Available hold times: 0.6 / 0.8 / 1.0 / 1.2 s.
+- Short detection dropouts are tolerated so one blurred frame does not reset a valid hold.
+- After one score command fires, the hand must be lowered for about 0.6 s before
+  another command can fire. A continuously held hand cannot add repeated goals.
+- Optional confirmation vibration, default ON.
+- Score change also shows the existing score pulse and a short localized confirmation.
+
+Privacy / architecture
+- Uses the OpenCV runtime already included in SportBestCam.
+- No new ML/analytics/network SDK is added.
+- Preview frames are processed locally on-device and are never uploaded.
+- Analysis runs at low resolution on a dedicated worker thread.
+- Camera encoder, Media3 muxer and recorded MP4 frames are not modified.
+
+Sport Mode / Fullscreen
+- Works in normal Sport Mode.
+- Works in SportBestCam fullscreen preview.
+- Home and fullscreen engines are gated so they cannot score simultaneously.
+- Rotation lifecycle is respected; the detector stops/restarts around preview recreation.
+- Simple video mode disables Gesture Scoring without deleting the saved preference.
+
+Settings / localization
+- Match Settings gains:
+  - Gesture scoring ON/OFF
+  - explanation of 1-finger / 2-finger commands
+  - hold-time selector
+  - confirmation vibration ON/OFF
+- Match Settings content is scrollable so the new controls remain accessible in landscape.
+- All new user-facing strings are available in English, Romanian and every existing
+  SportBestCam localization.
+
+No existing camera, recording, rotation, score tap/hold, Auto Goal, timer, FadRec,
+streaming, Remote, storage or Media3 functionality is removed.

@@ -1,0 +1,114 @@
+name: Build SportBestCam APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    env:
+      GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+
+    steps:
+      - name: Checkout SportBestCam
+        uses: actions/checkout@v4
+
+      - name: Clone patched Media3 required by SportBestCam
+        run: |
+          git clone --depth 1 https://github.com/anonfaded/media3-patched.git media3-patched
+          echo "media3.patched.path=${{ github.workspace }}/media3-patched" >> local.properties
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Restore persistent SportBestCam debug signing key
+        env:
+          SPORTBESTCAM_DEBUG_KEYSTORE_B64: ${{ secrets.SPORTBESTCAM_DEBUG_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SPORTBESTCAM_DEBUG_KEYSTORE_B64:-}" ]; then
+            echo "ERROR: GitHub secret SPORTBESTCAM_DEBUG_KEYSTORE_B64 is missing."
+            exit 1
+          fi
+
+          SOURCE_P12="$RUNNER_TEMP/sportbestcam-debug.p12"
+          DEBUG_KEYSTORE="$HOME/.android/debug.keystore"
+
+          mkdir -p "$HOME/.android"
+          rm -f "$SOURCE_P12" "$DEBUG_KEYSTORE"
+
+          if ! printf '%s' "$SPORTBESTCAM_DEBUG_KEYSTORE_B64" | base64 --decode > "$SOURCE_P12"; then
+            echo "ERROR: SPORTBESTCAM_DEBUG_KEYSTORE_B64 is not valid Base64."
+            exit 1
+          fi
+
+          echo "Decoded persistent signing key: $(stat -c%s "$SOURCE_P12") bytes"
+          echo "Decoded key SHA256: $(sha256sum "$SOURCE_P12" | awk '{print $1}')"
+
+          if ! openssl pkcs12 -in "$SOURCE_P12" -passin pass:android -noout; then
+            echo "ERROR: Decoded secret is not the expected PKCS12 keystore."
+            exit 1
+          fi
+
+          keytool -importkeystore \
+            -srckeystore "$SOURCE_P12" \
+            -srcstoretype PKCS12 \
+            -srcstorepass android \
+            -srcalias androiddebugkey \
+            -srckeypass android \
+            -destkeystore "$DEBUG_KEYSTORE" \
+            -deststoretype JKS \
+            -deststorepass android \
+            -destalias androiddebugkey \
+            -destkeypass android \
+            -noprompt
+
+          chmod 600 "$DEBUG_KEYSTORE"
+
+          keytool -list \
+            -keystore "$DEBUG_KEYSTORE" \
+            -storepass android \
+            -alias androiddebugkey >/dev/null
+
+          echo "Persistent SportBestCam debug signing key installed successfully."
+
+      - name: Set monotonic CI versionCode
+        run: |
+          set -euo pipefail
+          CI_VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))
+          sed -i -E "s/versionCode = [0-9]+/versionCode = ${CI_VERSION_CODE}/" app/build.gradle.kts
+          echo "CI versionCode: ${CI_VERSION_CODE}"
+          grep -n "versionCode =" app/build.gradle.kts | head -1
+
+      - name: Build SportBestCam debug APK
+        run: ./gradlew assembleDefaultDebug --stacktrace --no-daemon --max-workers=2
+
+      - name: Collect SportBestCam APK
+        run: |
+          mkdir -p out
+          find app/build/outputs/apk -name '*.apk' -type f | while read -r apk; do
+            base="$(basename "$apk")"
+            safe="${base/FadCam/SportBestCam}"
+            safe="${safe/fadcam/SportBestCam}"
+            cp "$apk" "out/$safe"
+          done
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SportBestCam-APK-${{ github.run_number }}
+          path: out/*.apk
+          if-no-files-found: error

@@ -1,0 +1,4 @@
+SportBestCam Build 0002.4.2
+- No application behavior changes from 0002.4.1a.
+- GitHub Actions runner changed to ubuntu-22.04 to bypass a stuck ubuntu-latest queue.
+- Keeps patched Media3 and 4 GB Gradle memory settings.

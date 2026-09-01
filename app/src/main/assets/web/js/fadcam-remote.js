@@ -1,0 +1,826 @@
+/**
+ * FadCam Remote Cloud Integration
+ * 
+ * Adds cloud features to the dashboard when accessed via web.
+ * Shows on: fadseclab.com, localhost
+ * Hidden on: IP addresses (phone/LAN access like 192.168.x.x)
+ * 
+ * Per-device streaming:
+ * - /stream/{device_id}/ → connects to specific device's stream
+ * - /dashboard/ → demo mode (no real streaming)
+ * 
+ * Cross-domain authentication:
+ * - User clicks "Open Stream" at id.fadseclab.com
+ * - Lab generates handoff token and redirects here with ?token=xxx
+ * - We exchange token for session data via Edge Function
+ * - Session stored in localStorage for subsequent API calls
+ * 
+ * Real device management happens at id.fadseclab.com/lab (Phase 6).
+ */
+(function() {
+  'use strict';
+  
+  // Configuration (renamed to avoid conflict with global CONFIG)
+  const CLOUD_CONFIG = {
+    // Lab dashboard URL — read from ?return= query param set by the id dashboard.
+    // No hardcoded ports or localhost URLs. Falls back to production only if param missing.
+    get LAB_URL() {
+      const params = new URLSearchParams(window.location.search);
+      const returnUrl = params.get('return');
+      if (returnUrl) return decodeURIComponent(returnUrl);
+      // Direct stream access without id dashboard — use production.
+      return 'https://id.fadseclab.com/lab';
+    },
+    SUPABASE_URL: 'https://vfhehknmxxedvesdvpew.supabase.co',
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaGVoa25teHhlZHZlc2R2cGV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3NDI2ODIsImV4cCI6MjA1MzMxODY4Mn0.1F8NF0IwBE-GYmR8Yrq4FKfFGKBRIUhWs0_fzFqF0gc',
+    // Domains where cloud features should show
+    WEB_DOMAINS: [
+      'fadseclab.com',
+      'localhost'
+    ],
+    // Local storage keys
+    STORAGE_KEYS: {
+      SESSION: 'fadcam_session',
+      USER: 'fadcam_user',
+      STREAM_TOKEN: 'fadcam_stream_token', // JWT for relay API calls
+      E2E_VERIFY_TAG: 'fadcam_e2e_verify_tag' // HMAC verify tag from Supabase
+    }
+  };
+  
+  // Stream context (set when accessing /stream/{device_id}/)
+  let streamContext = null;
+  let viewerHeartbeatTimer = null;
+  let viewerStats = null;
+  const VIEWER_SESSION_KEY = 'fadcam_viewer_session_id';
+  const VIEWER_HEARTBEAT_MS = 20000;
+  
+  // Check if running on web (not phone/LAN access)
+  function isWebAccess() {
+    const hostname = window.location.hostname;
+    return CLOUD_CONFIG.WEB_DOMAINS.some(domain => hostname.includes(domain));
+  }
+  
+  // Extract device_id from URL if in streaming mode
+  // Supports both:
+  // - /stream/{device_id}/ (direct path, works in dev mode)
+  // - /stream/?device={device_id} (GitHub Pages SPA fallback)
+  function getStreamDeviceId() {
+    // First check query parameter (GitHub Pages SPA fallback)
+    const params = new URLSearchParams(window.location.search);
+    const deviceFromQuery = params.get('device');
+    if (deviceFromQuery) {
+      return deviceFromQuery;
+    }
+    
+    // Then check path (direct path, works in dev mode)
+    const path = window.location.pathname;
+    const match = path.match(/^\/stream\/([a-zA-Z0-9_-]+)/);
+    return match ? match[1] : null;
+  }
+  
+  // Get handoff token from URL (passed by Lab after generating)
+  function getHandoffToken() {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    console.log('[FadCamRemote] getHandoffToken:', { 
+      search: window.location.search, 
+      hasToken: !!token,
+      tokenLength: token?.length 
+    });
+    return token;
+  }
+  
+  // Get stored session from localStorage
+  function getStoredSession() {
+    try {
+      const sessionStr = localStorage.getItem(CLOUD_CONFIG.STORAGE_KEYS.SESSION);
+      if (!sessionStr) return null;
+      const session = JSON.parse(sessionStr);
+      // Stored metadata is only a convenience. Server validation is mandatory
+      // before it can be used to open a cloud stream.
+      const authTime = new Date(session.authenticated_at);
+      const now = new Date();
+      const hoursDiff = (now - authTime) / (1000 * 60 * 60);
+      if (hoursDiff > 24) {
+        // Session expired, clear it
+        localStorage.removeItem(CLOUD_CONFIG.STORAGE_KEYS.SESSION);
+        localStorage.removeItem(CLOUD_CONFIG.STORAGE_KEYS.USER);
+        return null;
+      }
+      return session;
+    } catch (e) {
+      return null;
+    }
+  }
+  
+  // Store session in localStorage
+  function storeSession(sessionData, userData, streamToken, e2eVerifyTag) {
+    localStorage.setItem(CLOUD_CONFIG.STORAGE_KEYS.SESSION, JSON.stringify(sessionData));
+    localStorage.setItem(CLOUD_CONFIG.STORAGE_KEYS.USER, JSON.stringify(userData));
+    if (streamToken) {
+      localStorage.setItem(CLOUD_CONFIG.STORAGE_KEYS.STREAM_TOKEN, streamToken);
+    }
+    // Only update verify_tag when the server provides one.
+    // Never wipe an existing tag when null is returned — that typically means the
+    // Android device's PBKDF2 thread hasn't finished writing it to Supabase yet
+    // (race condition on first link). Keeping the old tag avoids breaking sessions
+    // that were already unlocked.
+    if (e2eVerifyTag) {
+      localStorage.setItem(CLOUD_CONFIG.STORAGE_KEYS.E2E_VERIFY_TAG, e2eVerifyTag);
+      console.log('[FadCamRemote] E2E verify_tag stored from token exchange');
+    } else {
+      console.log('[FadCamRemote] Token exchange returned null e2e_verify_tag — keeping existing tag if any');
+    }
+  }
+
+  // Get stored E2E verify tag
+  function getE2EVerifyTag() {
+    return localStorage.getItem(CLOUD_CONFIG.STORAGE_KEYS.E2E_VERIFY_TAG) || null;
+  }
+
+  // Get user ID from stored session
+  function getSessionUserId() {
+    try {
+      const sessionStr = localStorage.getItem(CLOUD_CONFIG.STORAGE_KEYS.SESSION);
+      if (!sessionStr) return null;
+      const session = JSON.parse(sessionStr);
+      return session.user_id || null;
+    } catch { return null; }
+  }
+  
+  // Get stored stream access token
+  function getStreamToken() {
+    return localStorage.getItem(CLOUD_CONFIG.STORAGE_KEYS.STREAM_TOKEN);
+  }
+
+  function clearStoredStreamSession() {
+    localStorage.removeItem(CLOUD_CONFIG.STORAGE_KEYS.SESSION);
+    localStorage.removeItem(CLOUD_CONFIG.STORAGE_KEYS.USER);
+    localStorage.removeItem(CLOUD_CONFIG.STORAGE_KEYS.STREAM_TOKEN);
+    localStorage.removeItem(CLOUD_CONFIG.STORAGE_KEYS.E2E_VERIFY_TAG);
+    if (typeof E2EKeyManager !== 'undefined') E2EKeyManager.clear();
+  }
+
+  function getViewerSessionId() {
+    let sessionId = sessionStorage.getItem(VIEWER_SESSION_KEY);
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      sessionStorage.setItem(VIEWER_SESSION_KEY, sessionId);
+    }
+    return sessionId;
+  }
+
+  function viewerLimitCopy(maxViewers) {
+    return {
+      title: 'Viewer Limit Reached',
+      message: `Your tier allows ${maxViewers || 1} concurrent viewer${maxViewers === 1 ? '' : 's'}.<br>Close an active stream or upgrade to watch from more clients.<br>Contact us on Discord for assistance.`
+    };
+  }
+
+  async function updateViewerLease(action) {
+    if (!streamContext?.streamToken) throw new Error('Stream session unavailable');
+    const response = await fetch('https://live.fadseclab.com:8443/api/viewer-session', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${streamContext.streamToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ action, session_id: getViewerSessionId() }),
+      keepalive: action === 'release'
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      const error = new Error(result.reason || result.error || 'Viewer session failed');
+      error.viewerLease = result;
+      error.status = response.status;
+      throw error;
+    }
+
+    viewerStats = result;
+    if (result.stream_access_token) {
+      streamContext.streamToken = result.stream_access_token;
+      localStorage.setItem(CLOUD_CONFIG.STORAGE_KEYS.STREAM_TOKEN, result.stream_access_token);
+    }
+    window.dispatchEvent(new CustomEvent('cloud-viewers-updated', { detail: viewerStats }));
+    return result;
+  }
+
+  async function startViewerLease() {
+    await updateViewerLease('acquire');
+    if (viewerHeartbeatTimer) clearInterval(viewerHeartbeatTimer);
+    viewerHeartbeatTimer = setInterval(() => {
+      updateViewerLease('heartbeat').catch((error) => {
+        console.error('[FadCamRemote] Viewer heartbeat failed:', error);
+        viewerStats = null;
+        if (error.status === 401) {
+          clearInterval(viewerHeartbeatTimer);
+          viewerHeartbeatTimer = null;
+          clearStoredStreamSession();
+          showStreamOverlay(
+            'Session Expired',
+            'Open the stream again from FadSec ID to continue.',
+            { actionLabel: 'Open FadSec ID', actionHref: CLOUD_CONFIG.LAB_URL }
+          );
+        }
+      });
+    }, VIEWER_HEARTBEAT_MS);
+  }
+
+  function releaseViewerLease() {
+    if (!streamContext?.streamToken) return;
+    void updateViewerLease('release').catch(() => {});
+  }
+  
+  // Exchange handoff token for session (called when arriving from Lab)
+  async function exchangeHandoffToken(token, deviceId) {
+    console.log('[FadCamRemote] Exchanging handoff token...');
+    
+    try {
+      const response = await fetch(`${CLOUD_CONFIG.SUPABASE_URL}/functions/v1/exchange-handoff-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token, device_id: deviceId })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Token exchange failed');
+      }
+      
+      // Store the session, stream access token, and E2E verify tag for future use
+      storeSession(result.session_hint, result.user, result.stream_access_token, result.e2e_verify_tag || null);
+      
+      // Clean up the URL (remove token from URL for security/aesthetics)
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('token');
+      window.history.replaceState({}, document.title, cleanUrl.toString());
+      
+      console.log('[FadCamRemote] Token exchanged successfully for user:', result.user.email);
+      return result;
+      
+    } catch (error) {
+      console.error('[FadCamRemote] Token exchange failed:', error);
+      throw error;
+    }
+  }
+  
+  // Check if we're in demo mode (/dashboard/) or streaming mode (/stream/{id}/)
+  function isStreamingMode() {
+    return getStreamDeviceId() !== null;
+  }
+
+  // ── E2E Unlock Modal ────────────────────────────────────────────────────────
+
+  /**
+   * Show the E2E unlock modal (injected dynamically into <body>).
+   * Called when: E2E key is missing from IndexedDB and stream is encrypted.
+   * Supports two modes:
+   *   - Normal (verifyTag present): validates password against server tag before storing key.
+   *   - First-time / race-condition (verifyTag null): derives and stores key without validation;
+   *     decryption failure will re-prompt automatically.
+   */
+  function showE2EUnlockModal() {
+    // Remove existing modal if any
+    const existing = document.getElementById('e2e-unlock-overlay');
+    if (existing) existing.remove();
+
+    const userId  = (streamContext && streamContext.userId) || getSessionUserId();
+    const verifyTag = getE2EVerifyTag();
+    // true = first-time / race condition (PBKDF2 may not have written tag to Supabase yet)
+    const noVerifyTag = !verifyTag;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'e2e-unlock-overlay';
+    overlay.style.cssText = [
+      'position:fixed', 'inset:0', 'background:rgba(0,0,0,0.92)',
+      'display:flex', 'align-items:center', 'justify-content:center',
+      'z-index:10000', 'font-family:system-ui,sans-serif',
+    ].join(';');
+
+    const subtitle = noVerifyTag
+      ? 'This stream appears to be end-to-end encrypted. Enter your LabPass to decrypt &amp; unlock playback.'
+      : 'This stream is end-to-end encrypted. Enter your LabPass to decrypt &amp; unlock playback.';
+
+    overlay.innerHTML = `
+      <div style="
+        background: rgba(9,9,11,0.96);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid #27272a;
+        border-radius: 16px;
+        padding: 32px 28px 24px;
+        max-width: 420px;
+        width: 90%;
+        color: #fff;
+        text-align: center;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      ">
+        <div style="
+          width: 52px; height: 52px;
+          background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+          border-radius: 12px;
+          display: flex; align-items: center; justify-content: center;
+          margin: 0 auto 16px;
+          box-shadow: 0 0 0 1px rgba(220,38,38,0.3), 0 8px 32px rgba(220,38,38,0.35);
+          font-size: 22px; line-height: 1;
+        ">&#x1F512;</div>
+        <h2 style="margin:0 0 8px;font-size:18px;font-weight:700;letter-spacing:-0.2px;">
+          Encrypted Stream
+        </h2>
+        <p style="margin:0 0 24px;font-size:13px;color:#a1a1aa;line-height:1.55;">
+          ${subtitle}
+        </p>
+        <div style="text-align:left;margin-bottom:6px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#e4e4e7;margin-bottom:2px;letter-spacing:0.4px;text-transform:uppercase;">
+            LabPass
+          </label>
+          <p style="margin:0 0 8px;font-size:11px;color:#71717a;line-height:1.4;">
+            Your <strong style="color:#a1a1aa;font-weight:600;">FadSec ID</strong> password — the one you use to sign in at <span style="color:#dc2626;">id.fadseclab.com</span>
+          </p>
+          <input
+            id="e2e-unlock-input"
+            type="password"
+            placeholder="Enter your LabPass…"
+            autocomplete="current-password"
+            style="
+              width:100%; box-sizing:border-box;
+              padding: 10px 14px;
+              background: #09090b;
+              border: 1px solid #27272a;
+              border-radius: 8px;
+              color: #fff;
+              font-size: 14px;
+              outline: none;
+              transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            "
+            onfocus="this.style.borderColor='transparent';this.style.boxShadow='0 0 0 2px #dc2626';"
+            onblur="this.style.borderColor='#27272a';this.style.boxShadow='none';"
+          />
+        </div>
+        <div id="e2e-unlock-error"
+             style="color:#ef4444;font-size:12px;min-height:20px;margin-bottom:12px;text-align:left;"></div>
+        <button
+          id="e2e-unlock-btn"
+          onclick="window.__e2eUnlockSubmit()"
+          style="
+            width: 100%; padding: 11px;
+            background: #dc2626;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 0.2px;
+            transition: box-shadow 0.2s ease, background 0.2s ease;
+          "
+          onmouseover="if(!this.disabled){this.style.boxShadow='0 0 12px rgba(220,38,38,0.8),0 0 28px rgba(220,38,38,0.45)';}"
+          onmouseout="this.style.boxShadow='none';"
+        >
+          Unlock Stream
+        </button>
+        <p style="margin:16px 0 0;font-size:11px;color:#3f3f46;letter-spacing:0.5px;">
+          POWERED BY <span style="color:#dc2626;font-weight:600;">FADSEC LAB</span>
+        </p>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    // Focus the input
+    const input = document.getElementById('e2e-unlock-input');
+    if (input) setTimeout(() => input.focus(), 50);
+
+    // Enter key submits
+    if (input) {
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') window.__e2eUnlockSubmit(); });
+    }
+
+    // Attach submit handler on window to keep it accessible from inline onclick
+    window.__e2eUnlockSubmit = async function () {
+      const btn   = document.getElementById('e2e-unlock-btn');
+      const errEl = document.getElementById('e2e-unlock-error');
+      const pw    = (document.getElementById('e2e-unlock-input') || {}).value || '';
+
+      if (!pw) {
+        if (errEl) errEl.textContent = 'LabPass is required.';
+        return;
+      }
+
+      if (btn) { btn.disabled = true; btn.textContent = 'Unlocking…'; }
+      if (errEl) errEl.textContent = '';
+
+      try {
+        if (!userId) throw new Error('User ID unavailable — please re-authenticate.');
+
+        if (noVerifyTag) {
+          // Race condition: verify_tag not yet in Supabase (PBKDF2 still running on device).
+          // Derive and store the key without server validation. If the password is wrong the
+          // stream decryption will fail and the e2e-decryption-failed event will re-prompt.
+          console.log('[FadCamRemote] No verify_tag available — unlocking without server validation (first-time / race condition)');
+          await E2EKeyManager.unlockNoVerify(pw, userId);
+        } else {
+          const ok = await E2EKeyManager.unlock(pw, userId, verifyTag);
+          if (!ok) {
+            if (errEl) errEl.textContent = 'Incorrect LabPass. Please try again.';
+            if (btn) { btn.disabled = false; btn.textContent = 'Unlock Stream'; }
+            return;
+          }
+        }
+
+        // Success — dismiss modal and signal stream to reload
+        const el = document.getElementById('e2e-unlock-overlay');
+        if (el) {
+          el.style.opacity = '0';
+          el.style.transition = 'opacity .3s';
+          setTimeout(() => el.remove(), 300);
+        }
+        delete window.__e2eUnlockSubmit;
+        console.log('[FadCamRemote] E2E unlocked successfully');
+        // Notify the stream player to reload so it can decrypt with the new key
+        window.dispatchEvent(new CustomEvent('e2e-stream-ready'));
+      } catch (err) {
+        console.error('[FadCamRemote] E2E unlock error:', err);
+        if (errEl) errEl.textContent = err.message || 'Unlock failed. Please try again.';
+        if (btn) { btn.disabled = false; btn.textContent = 'Unlock Stream'; }
+      }
+    };
+  }
+
+  /**
+   * Check if the E2E unlock modal should be shown and show it if needed.
+   * Shows when: verify_tag exists (E2E is configured) AND key is not in IndexedDB.
+   */
+  async function checkAndShowE2EUnlock() {
+    const verifyTag = getE2EVerifyTag();
+    if (!verifyTag) {
+      console.log('[FadCamRemote] No E2E verify_tag — stream is not encrypted');
+      return;
+    }
+
+    if (typeof E2EKeyManager === 'undefined') {
+      console.warn('[FadCamRemote] E2EKeyManager not loaded — cannot check E2E state');
+      return;
+    }
+
+    const initialized = await E2EKeyManager.isInitialized();
+    if (!initialized) {
+      console.log('[FadCamRemote] E2E key not in IndexedDB — showing unlock modal');
+      showE2EUnlockModal();
+    } else {
+      console.log('[FadCamRemote] E2E key already in IndexedDB — stream ready');
+    }
+  }
+
+  // Listen for decryption failures → show unlock modal (debounced, non-destructive).
+  // CRITICAL: Do NOT clear the key on every failure. HLS fires this event for every
+  // segment retry, and clearing the key mid-typing makes it impossible for the user
+  // to enter their password. Only clear the key when the user entered a wrong password
+  // (handled inside showE2EUnlockModal's submit handler).
+  let _e2eModalShowing = false;
+  window.addEventListener('e2e-decryption-failed', async (ev) => {
+    console.warn('[FadCamRemote] e2e-decryption-failed event received:', ev.detail);
+    // Skip if the unlock modal is already visible (avoid overlapping prompts)
+    if (_e2eModalShowing || document.getElementById('e2e-unlock-overlay')) {
+      return;
+    }
+    _e2eModalShowing = true;
+    showE2EUnlockModal();
+    // Reset flag when modal is dismissed (overlay removed from DOM)
+    const observer = new MutationObserver(() => {
+      if (!document.getElementById('e2e-unlock-overlay')) {
+        _e2eModalShowing = false;
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true });
+  });
+  
+  // Initialize stream context for device
+  async function initStreamContext(deviceId) {
+    console.log('[FadCamRemote] Initializing stream for device:', deviceId);
+    
+    // Show connecting overlay
+    showStreamOverlay('Connecting...', 'Authenticating with FadSec Cloud');
+    
+    try {
+      // Check for handoff token first (coming from Lab)
+      const handoffToken = getHandoffToken();
+      console.log('[FadCamRemote] Token check result:', { 
+        handoffToken: handoffToken ? handoffToken.substring(0, 8) + '...' : null,
+        willExchange: !!handoffToken 
+      });
+      let session = null;
+      
+      if (handoffToken) {
+        console.log('[FadCamRemote] HAS handoff token, will exchange...');
+        // Exchange handoff token for session
+        try {
+          const result = await exchangeHandoffToken(handoffToken, deviceId);
+          session = result.session_hint;
+          streamContext = {
+            deviceId: deviceId,
+            deviceName: result.device?.name || deviceId,
+            userId: result.user.id,
+            userEmail: result.user.email,
+            streamToken: result.stream_access_token // JWT for relay API calls
+          };
+        } catch (e) {
+          showStreamOverlay('Authentication Failed', e.message || 'Invalid or expired link. Please try again from Lab.');
+          setTimeout(() => {
+            window.location.href = CLOUD_CONFIG.LAB_URL;
+          }, 3000);
+          return;
+        }
+      } else {
+        console.log('[FadCamRemote] NO handoff token, checking stored session...');
+        // No handoff token - check for stored session
+        session = getStoredSession();
+        const storedStreamToken = getStreamToken();
+        console.log('[FadCamRemote] Stored session:', session ? 'exists' : 'none', 'Stream token:', storedStreamToken ? 'exists' : 'none');
+        
+        if (!session || !storedStreamToken) {
+          console.log('[FadCamRemote] No session or token, will redirect to Lab in 1.5s');
+          // No session - redirect to Lab to login
+          showStreamOverlay('Not Logged In', 'Redirecting to login...');
+          setTimeout(() => {
+            console.log('[FadCamRemote] Redirecting NOW to:', CLOUD_CONFIG.LAB_URL);
+            window.location.href = CLOUD_CONFIG.LAB_URL;
+          }, 1500);
+          return;
+        }
+        
+        // CRITICAL SECURITY: Validate stored session with server before granting access
+        // This ensures users with revoked access cannot bypass tier restrictions
+        // If tier/beta status changed since last login, this will catch it
+        console.log('[FadCamRemote] 🔐 Validating stored session with server...');
+        try {
+          const validationResponse = await fetch(`${CLOUD_CONFIG.SUPABASE_URL}/functions/v1/verify-stream-token`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${storedStreamToken}`,
+              'X-Device-Id': deviceId,
+              'X-User-Id': session.user_id,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ device_id: deviceId, user_id: session.user_id })
+          });
+          
+          if (validationResponse.ok) {
+            console.log('[FadCamRemote] ✅ Session validated - user has current access');
+          } else {
+            console.error(`[FadCamRemote] ❌ Stored session rejected (${validationResponse.status})`);
+            clearStoredStreamSession();
+            showStreamOverlay(
+              validationResponse.status === 401 ? 'Session Expired' : 'Streaming Access Unavailable',
+              'Open the stream again from FadSec ID after confirming your membership.',
+              { actionLabel: 'Open FadSec ID', actionHref: CLOUD_CONFIG.LAB_URL }
+            );
+            return;
+          }
+        } catch (validationError) {
+          console.error('[FadCamRemote] ❌ Stored session validation unavailable:', validationError.message);
+          showStreamOverlay(
+            'Unable to Verify Access',
+            'FadSec ID could not verify this stored stream session. Try again from the Lab dashboard.',
+            { actionLabel: 'Open FadSec ID', actionHref: CLOUD_CONFIG.LAB_URL }
+          );
+          return;
+        }
+        
+        // We have a valid, server-verified stored session, use it
+        streamContext = {
+          deviceId: deviceId,
+          deviceName: session.device_id === deviceId ? 'Your Device' : deviceId,
+          userId: session.user_id,
+          streamToken: storedStreamToken // JWT for relay API calls
+        };
+      }
+      
+      await startViewerLease();
+
+      // Hide overlay and start streaming
+      hideStreamOverlay();
+      // Logo already links to Lab (set in HTML), no need to update
+      
+      // Initialize CloudApiService for cloud mode
+      if (typeof initCloudApiService === 'function') {
+        initCloudApiService(streamContext);
+        console.log('[FadCamRemote] CloudApiService initialized');
+      }
+      
+      console.log('[FadCamRemote] Stream context ready:', streamContext);
+
+      // Add Open Lab menu item to profile dropdown
+      addCloudMenuItem();
+
+      // Show E2E unlock modal if verify_tag is present but key is not in IndexedDB
+      await checkAndShowE2EUnlock();
+      
+      // Emit event for DashboardViewModel to pick up cloud mode
+      if (typeof eventBus !== 'undefined') {
+        eventBus.emit('cloud-mode-ready', streamContext);
+      }
+      
+    } catch (error) {
+      console.error('[FadCamRemote] Stream init failed:', error);
+      const viewerLease = error.viewerLease || viewerStats || null;
+      if (error.message && error.message.includes('Concurrent viewer limit reached')) {
+        const copy = viewerLimitCopy(viewerLease?.max_viewers || streamContext?.maxViewers || 0);
+        showStreamOverlay(
+          copy.title,
+          copy.message,
+          {
+            actions: [
+              { label: 'Back to Lab', href: CLOUD_CONFIG.LAB_URL, icon: 'fa-solid fa-flask' },
+              { label: 'Contact on Discord', href: 'https://discord.gg/kvAZvdkuuN', icon: 'fab fa-discord', newTab: true }
+            ]
+          }
+        );
+        return;
+      }
+
+      if (error.message && error.message.includes('Viewer session conflict')) {
+        showStreamOverlay(
+          'Viewer Session Busy',
+          'This browser tab already holds the active viewer lease for this stream. Close the other tab or refresh this one.',
+          {
+            actionLabel: 'Reload',
+            actionHref: window.location.href
+          }
+        );
+        return;
+      }
+
+      showStreamOverlay('Connection Failed', error.message || 'Unable to connect to device. Please try again.');
+    }
+  }
+  
+  // Check if we're in cloud mode (web access + authenticated stream context)
+  function isCloudMode() {
+    return isWebAccess() && streamContext !== null;
+  }
+  
+  // Show overlay on stream page.
+  // Supports both legacy { actionLabel, actionHref } and new { actions: [{ label, href, icon }] }
+  function showStreamOverlay(title, message, options = {}) {
+    let overlay = document.getElementById('stream-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'stream-overlay';
+      overlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.95);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        color: white;
+        text-align: center;
+        padding: 20px;
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    // Build actions: support both legacy single-action and new multi-action array
+    const actions = options.actions || (options.actionLabel ? [{ label: options.actionLabel, href: options.actionHref || CLOUD_CONFIG.LAB_URL }] : null);
+    const buttonsHtml = actions ? `
+      <div style="margin-top: 24px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        ${actions.map(a => `
+          <a href="${a.href || '#'}" ${a.newTab ? 'target="_blank" rel="noopener"' : ''} style="
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 18px;
+            border-radius: 10px;
+            background: #dc2626;
+            color: #fff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 700;
+          ">${a.icon ? `<i class="${a.icon}"></i>` : ''}${a.label}</a>
+        `).join('')}
+      </div>
+    ` : `
+      <div style="margin-top: 20px;">
+        <div style="width: 40px; height: 40px; border: 3px solid #333; border-top-color: #ff4444; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+      </div>
+    `;
+
+    overlay.innerHTML = `
+      <div style="max-width: 420px;">
+        <div style="font-size: 24px; font-weight: bold; margin-bottom: 12px;">${title}</div>
+        <div style="font-size: 14px; color: #b0b0b0; line-height: 1.6;">${message}</div>
+        ${buttonsHtml}
+      </div>
+      <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+      </style>
+    `;
+  }
+  
+  // Hide overlay
+  function hideStreamOverlay() {
+    const overlay = document.getElementById('stream-overlay');
+    if (overlay) {
+      overlay.style.opacity = '0';
+      overlay.style.transition = 'opacity 0.3s';
+      setTimeout(() => overlay.remove(), 300);
+    }
+  }
+  
+  // Show device banner at top
+  // NOTE: Device banner removed - logo in header always links to Lab (set in HTML)
+  
+  // Add Open Lab menu item to profile dropdown
+  function addCloudMenuItem() {
+    const dropdown = document.getElementById('profileDropdown');
+    if (!dropdown) {
+      console.error('[FadCamRemote] Profile dropdown not found');
+      return;
+    }
+    
+    if (!CLOUD_CONFIG.LAB_URL) return;
+    
+    const menuItem = document.createElement('div');
+    menuItem.className = 'profile-item';
+    
+    menuItem.innerHTML = `
+      <i class="fas fa-flask" style="color: #dc2626;"></i> 
+      <span>Open Lab</span>
+    `;
+    menuItem.onclick = () => { window.location.href = CLOUD_CONFIG.LAB_URL; };
+    
+    // Insert before the logout item
+    const logoutItem = document.getElementById('profileLogoutItem');
+    if (logoutItem) {
+      dropdown.insertBefore(menuItem, logoutItem);
+    } else {
+      dropdown.appendChild(menuItem);
+    }
+    
+    console.log('[FadCamRemote] Menu item added');
+  }
+  
+  // Initialize
+  function init() {
+    if (!isWebAccess()) {
+      console.log('[FadCamRemote] Local/LAN access, skipping cloud features');
+      return;
+    }
+    
+    console.log('[FadCamRemote] Web access detected, adding cloud features...');
+    
+    // Check if we're in streaming mode
+    const deviceId = getStreamDeviceId();
+    if (deviceId) {
+      console.log('[FadCamRemote] Streaming mode for device:', deviceId);
+      initStreamContext(deviceId);
+    } else {
+      // Demo mode - just add menu item
+      addCloudMenuItem();
+    }
+  }
+  
+  // Wait for DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  window.addEventListener('pagehide', releaseViewerLease);
+  
+  // Export for testing and integration
+  window.FadCamRemote = {
+    getStreamDeviceId,
+    isStreamingMode,
+    isCloudMode,
+    isWebAccess,
+    streamContext: () => streamContext,
+    getStreamToken: () => streamContext?.streamToken || getStreamToken(),
+    getViewerStats: () => viewerStats,
+    getE2EVerifyTag,
+    getSessionUserId,
+    getRelayHlsUrl: () => {
+      if (!streamContext?.userId || !streamContext?.deviceId) return null;
+      // Return the base URL without token — HlsService.xhrSetup handles auth injection.
+      // This prevents token duplication when xhrSetup and the URL both carry the token.
+      return `https://live.fadseclab.com:8443/stream/${streamContext.userId}/${streamContext.deviceId}/live.m3u8`;
+    },
+    getRelayStatusUrl: () => {
+      if (!streamContext?.userId || !streamContext?.deviceId) return null;
+      return `https://live.fadseclab.com:8443/api/status/${streamContext.userId}/${streamContext.deviceId}`;
+    },
+    getRelayCommandUrl: () => {
+      if (!streamContext?.userId || !streamContext?.deviceId) return null;
+      return `https://live.fadseclab.com:8443/api/command/${streamContext.userId}/${streamContext.deviceId}`;
+    },
+    showE2EUnlockModal,
+    checkAndShowE2EUnlock,
+  };
+})();

@@ -1,0 +1,15 @@
+SportBestCam Build 0002.6.2 Sport Controls Polish
+
+- Adds a direct Capture Frame / Screenshot button back to the Sport Mode bottom rail.
+  It uses the existing safe photo/FadShot capture pipeline; no recording engine changes.
+- Match timer button gets a dedicated sports-flag icon.
+- Portrait timer labels stay compact (START / PAUZA / REIA).
+- REC button gets a SportBestCam video-record icon.
+- Recording elapsed time is never shown inside REC/STOP in Sport Mode.
+- Elapsed recording time is shown discreetly in the lower-left of preview:
+  ● 00:00 while recording, Ⅱ 00:00 while paused.
+- Long recordings therefore never overflow the REC button.
+- Main Sport HUD is nudged slightly right to visually center inside the true safe area.
+- Fullscreen HUD gets the same small right-side safe-area compensation.
+- All previous camera, Media3, recording, timer sync, scoring, Auto Goal,
+  calibration, wizard, rebrand, FadRec and storage fixes remain unchanged.

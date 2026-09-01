@@ -1,0 +1,36 @@
+SportBestCam Build 0002.6.3 UI Fix Pack
+
+UI Fix #1 - Landscape Sport safe area
+- Sport controls and panels account for Android left/right system-bar insets.
+- Works in normal and reverse landscape so controls no longer sit under navigation buttons.
+
+UI Fix #2 - Gregorian clock/date only
+- Removes the secondary Hijri/Arabic date from the Home clock card.
+- Removes the Islamic-calendar choice from clock display settings.
+- Old Gregorian+Hijri preference is migrated to Gregorian date + time.
+
+UI Fix #3 - Fold handle
+- Landscape >> handle is slightly larger and kept inside the real safe area.
+- Touch target is easier to hit without visually dominating the preview.
+
+UI Fix #4 - Fullscreen SportBestCam Preview top dock
+- Top dock sits immediately below the top safe area instead of leaving a large gap.
+- Landscape width is reduced to roughly 78% of usable width.
+- Reverse-landscape left/right insets are respected.
+- Back/Focus and fullscreen behavior are preserved.
+
+UI Fix #5 - Sport timer + REC/STOP
+- Match timer is narrower and uses a stopwatch/counter icon.
+- START/PAUZA/REIA labels are compact in both orientations.
+- REC/STOP is icon-only in Sport Mode; clipped RE/ST text is eliminated.
+- Recording elapsed time remains the separate discreet preview badge.
+
+UI Fix #6 - Wizard teams / Handball rules
+- Team-color controls are pure color swatches; no Albastru/Verde text on the buttons.
+- Tapping a swatch opens a color chooser.
+- Adds Mini-handbal preset: 2 x 20 min.
+- Handbal remains 2 x 30 min and the rule fields remain manually editable.
+- Reprize/runde and minute fields explicitly open Android's numeric keyboard.
+- Custom sport still allows manual period/rule entry.
+
+No camera, Media3, RecordingService, storage, streaming, Auto Goal engine or FadRec engine changes.

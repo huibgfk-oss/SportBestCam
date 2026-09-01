@@ -1,0 +1,8 @@
+SportBestCam Build 0002.6.3a Compile Fix
+
+Fixes the Java compile errors in FullscreenPreviewActivity introduced by UI Fix #4.
+
+- Declares leftInset = bars.left
+- Declares rightInset = bars.right
+- Keeps the safe-area-aware fullscreen top/bottom bar positioning unchanged.
+- No camera, recording, timer, scoring, wizard, Media3 or other UI behavior changes.

@@ -1,0 +1,11 @@
+SportBestCam Build 0002.4.0 Rebrand
+- App display name: SportBestCam.
+- New SportBestCam header wordmark and launcher icon.
+- Recording/photo watermark uses SportBestCam mark + name.
+- Fullscreen / welcome / settings / remote-visible strings rebranded.
+- FadRec/FadMic/FadShot/Faditor visible branding renamed to SportRec/SportMic/SportShot/SportEditor.
+- Mode switcher simplified to Camera / Screen / Mic.
+- New recordings use SportBestCam folder/file naming.
+- Best-effort migration from legacy FadCam folder plus legacy scan fallback.
+- Internal Java package com.fadcam and technical class/resource identifiers are intentionally preserved for build/update stability.
+- GPL/source attribution is not removed from legal/source files.

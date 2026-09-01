@@ -1,0 +1,9 @@
+SportBestCam Build 0002.5.5 Branding / APK Name
+
+- Replaces the main Android launcher icon with the SportBestCam SBC camera mark.
+- Updates normal, round and adaptive foreground launcher assets.
+- Updates the Play Store/high-resolution launcher asset.
+- Keeps Android adaptive-icon background dark (#1D1D1D).
+- APK output is renamed from FadCam_...apk to SportBestCam_...apk.
+- GitHub artifact remains SportBestCam-APK-<run>.
+- Internal applicationId/package com.fadcam is intentionally unchanged for compatibility.

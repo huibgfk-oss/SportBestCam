@@ -1,0 +1,1578 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/home_sidebar_root_scroll"
+    android:layout_width="320dp"
+    android:layout_height="match_parent"
+    android:background="@drawable/home_sidesheet_gradient_bg_dynamic"
+    android:clipToOutline="true"
+    android:outlineProvider="background"
+    android:fillViewport="true"
+    android:scrollbars="vertical">
+
+<LinearLayout
+    android:id="@+id/home_sidebar_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingTop="16dp"
+    android:paddingBottom="16dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp">
+
+        <!-- Header with close button and title -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="12dp" android:paddingBottom="12dp"
+            android:paddingStart="6dp" android:paddingEnd="6dp">
+
+            <ImageView
+                android:id="@+id/home_sidebar_close_btn"
+                android:layout_width="14dp" android:layout_height="14dp"
+                android:layout_marginEnd="0dp"
+                android:src="@drawable/ic_close"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:tint="?attr/pickerTextSecondary"
+                android:clickable="true" android:focusable="true"/>
+
+            <TextView
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:layout_marginStart="4dp"
+                android:text="@string/home_options_title"
+                android:textColor="?attr/pickerTextPrimary"
+                android:textStyle="bold" android:textSize="17sp"/>
+        </LinearLayout>
+
+        <com.google.android.material.divider.MaterialDivider
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:layout_marginStart="0dp"
+            android:layout_marginEnd="0dp" app:dividerColor="#262626"/>
+
+        <!-- Profiles placeholder -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/settings_group_card_bg"
+            android:layout_marginTop="4dp"
+            android:clickable="true"
+            android:focusable="true">
+
+        <LinearLayout
+            android:id="@+id/row_profiles"
+            style="@style/SettingsGroupRow"
+            android:clickable="true" android:focusable="true"
+            android:minHeight="56dp">
+
+            <TextView android:layout_width="24dp" android:layout_height="24dp"
+                android:layout_marginEnd="16dp" android:fontFamily="@font/materialicons"
+                android:text="account_circle" android:textColor="?attr/colorHeading"
+                android:textSize="18sp" android:gravity="center"/>
+
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/sidebar_profiles" android:textColor="?attr/colorHeading"
+                    android:textSize="15sp" android:textStyle="bold"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/sidebar_profiles_desc"
+                    android:textColor="?attr/pickerTextSecondary" android:textSize="12sp"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/mini_app_coming_soon"
+                    android:textColor="@android:color/white" android:textSize="9sp"
+                    android:textStyle="bold" android:textAllCaps="true"
+                    android:background="@drawable/bg_coming_soon_badge"
+                    android:paddingHorizontal="6dp" android:paddingVertical="2dp"/>
+                <ImageView android:layout_width="14dp" android:layout_height="14dp"
+                    android:layout_marginStart="6dp" android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray"/>
+            </LinearLayout>
+        </LinearLayout>
+        </LinearLayout>
+
+        <!-- Group: Update Available -->
+        <LinearLayout
+            android:id="@+id/update_available_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:background="@drawable/settings_group_card_bg"
+            android:padding="12dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:id="@+id/update_group_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sidebar_update_available"
+                android:textColor="?attr/colorAccent"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textAllCaps="true"
+                android:letterSpacing="0.08"
+                android:gravity="center"
+                android:layout_marginBottom="10dp"/>
+
+            <!-- Stable Card -->
+            <FrameLayout
+                android:id="@+id/card_update_stable"
+                android:clipToOutline="true"
+                android:outlineProvider="background"
+                android:background="@drawable/card_bg_stable"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="0dp"
+                android:layout_marginEnd="0dp"
+                android:layout_marginBottom="8dp"
+                
+                
+                
+                
+                
+                android:clickable="true"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="14dp" android:paddingEnd="12dp" android:paddingTop="12dp" android:paddingBottom="12dp">
+
+                    <TextView android:layout_width="24dp" android:layout_height="24dp"
+                        android:layout_marginEnd="10dp" android:fontFamily="@font/materialicons"
+                        android:text="verified" android:textColor="#FFFFFF" android:textSize="18sp"
+                        android:gravity="center"/>
+
+<LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center_vertical">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/sidebar_stable_release" android:textColor="#FFFFFF"
+                                android:textStyle="bold" android:textSize="12sp"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="16dp"
+                                android:layout_marginStart="6dp" android:paddingHorizontal="6dp"
+                                android:text="@string/badge_new" android:textColor="#FFFFFF"
+                                android:textSize="8sp" android:textStyle="bold"
+                                android:gravity="center"
+                                android:background="@drawable/bg_badge_stable"/>
+                        </LinearLayout>
+                          <TextView android:id="@+id/tv_stable_version" android:layout_width="wrap_content"
+                             android:layout_height="wrap_content" android:text="v--  >>  v--"
+                             android:textColor="#66BB6A" android:textSize="11sp" android:layout_marginTop="2dp"/>
+                    </LinearLayout>
+
+                    <ImageView android:layout_width="14dp" android:layout_height="14dp"
+                        android:layout_marginStart="12dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:tint="#FFFFFF" android:alpha="0.5"/>
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Beta Card -->
+            <FrameLayout
+                android:id="@+id/card_update_beta"
+                android:clipToOutline="true"
+                android:outlineProvider="background"
+                android:background="@drawable/card_bg_beta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="0dp"
+                android:layout_marginEnd="0dp"
+                android:layout_marginBottom="8dp"
+                
+                
+                
+                
+                
+                android:clickable="true"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="14dp" android:paddingEnd="12dp" android:paddingTop="12dp" android:paddingBottom="12dp">
+
+                    <TextView android:layout_width="24dp" android:layout_height="24dp"
+                        android:layout_marginEnd="10dp" android:fontFamily="@font/materialicons"
+                        android:text="science" android:textColor="#FFFFFF" android:textSize="18sp"
+                        android:gravity="center"/>
+
+<LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center_vertical">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/sidebar_beta_release" android:textColor="#FFFFFF"
+                                android:textStyle="bold" android:textSize="12sp"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="16dp"
+                                android:layout_marginStart="6dp" android:paddingHorizontal="6dp"
+                                android:text="@string/badge_new" android:textColor="#FFFFFF"
+                                android:textSize="8sp" android:textStyle="bold"
+                                android:gravity="center"
+                                android:background="@drawable/bg_badge_beta"/>
+                        </LinearLayout>
+                          <TextView android:id="@+id/tv_beta_version" android:layout_width="wrap_content"
+                             android:layout_height="wrap_content" android:text="v--  >>  v--"
+                             android:textColor="#BA68C8" android:textSize="11sp" android:layout_marginTop="2dp"/>
+                    </LinearLayout>
+
+                    <ImageView android:layout_width="14dp" android:layout_height="14dp"
+                        android:layout_marginStart="12dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:tint="#FFFFFF" android:alpha="0.5"/>
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Pro Card -->
+            <FrameLayout
+                android:id="@+id/card_update_pro"
+                android:clipToOutline="true"
+                android:outlineProvider="background"
+                android:background="@drawable/card_bg_pro"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="0dp"
+                android:layout_marginEnd="0dp"
+                android:layout_marginBottom="8dp"
+                
+                
+                
+                
+                
+                android:clickable="true"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="14dp" android:paddingEnd="12dp" android:paddingTop="12dp" android:paddingBottom="12dp">
+
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                        android:layout_marginEnd="10dp"
+                        android:src="@drawable/ic_crown" android:tint="#FFFFFF"
+                        android:scaleType="centerInside"/>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center_vertical">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/sidebar_fadcam_pro" android:textColor="#FFFFFF"
+                                android:textStyle="bold" android:textSize="12sp"/>
+                             <TextView android:layout_width="wrap_content" android:layout_height="16dp"
+                                android:layout_marginStart="6dp" android:paddingHorizontal="6dp"
+                                android:text="@string/badge_new" android:textColor="#1A1A1A"
+                                android:textSize="8sp" android:textStyle="bold"
+                                android:gravity="center"
+                                android:background="@drawable/bg_badge_pro"/>
+                        </LinearLayout>
+                          <TextView android:id="@+id/tv_pro_version" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:text="v--  >>  v--"
+                            android:textColor="#FFFFFF" android:textSize="11sp" android:layout_marginTop="2dp"/>
+                    </LinearLayout>
+
+                    <ImageView android:layout_width="14dp" android:layout_height="14dp"
+                        android:layout_marginStart="12dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:tint="#FFFFFF" android:alpha="0.5"/>
+        </LinearLayout>
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Group: Display Settings -->
+        <TextView
+            android:id="@+id/display_group_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/display_settings_title"
+            android:textColor="?attr/colorHeading"
+            android:paddingTop="16dp"
+            android:paddingBottom="8dp"
+            android:textStyle="bold"
+            android:textAlignment="viewStart"/>
+
+        <!-- Display settings group card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+
+
+            android:background="@drawable/settings_group_card_bg">
+
+            <!-- Preview toggle row -->
+            <LinearLayout
+                android:id="@+id/row_preview_toggle"
+                style="@style/SettingsGroupRow"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <!-- Preview icon using Material Icons ligature -->
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:fontFamily="@font/materialicons"
+                    android:text="visibility"
+                    android:textColor="?attr/colorHeading"
+                    android:textSize="18sp"
+                    android:gravity="center" />
+
+                <!-- Title and subtitle -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tv_preview_toggle_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/preview_enabled"
+                        android:textColor="?attr/colorHeading"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textAlignment="viewStart"
+                        android:layout_marginBottom="2dp" />
+
+                    <TextView
+                        android:id="@+id/tv_preview_toggle_sub"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/preview_disabled"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="11sp"
+                        android:textAlignment="viewStart" />
+                </LinearLayout>
+
+                <!-- AvatarToggleView — consistent with all other toggle rows -->
+                <com.fadcam.ui.AvatarToggleView
+                    android:id="@+id/iv_preview_toggle"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_marginStart="0dp"
+                    android:layout_gravity="center_vertical" />
+
+            </LinearLayout>
+
+            <com.google.android.material.divider.MaterialDivider
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="0dp"
+                android:layout_marginEnd="0dp"
+                app:dividerColor="#262626"/>
+
+            <LinearLayout
+                android:id="@+id/row_preview_quick_actions_toggle"
+                style="@style/SettingsGroupRow"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:fontFamily="@font/materialicons"
+                    android:text="widgets"
+                    android:textColor="?attr/colorHeading"
+                    android:textSize="18sp"
+                    android:gravity="center" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tv_preview_quick_actions_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/preview_quick_actions_title"
+                        android:textColor="?attr/colorHeading"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textAlignment="viewStart"
+                        android:layout_marginBottom="2dp" />
+
+                    <TextView
+                        android:id="@+id/tv_preview_quick_actions_sub"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/preview_quick_actions_sub"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="11sp"
+                        android:textAlignment="viewStart" />
+                </LinearLayout>
+
+                <com.fadcam.ui.AvatarToggleView
+                    android:id="@+id/switch_preview_quick_actions_toggle"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_marginStart="0dp"
+                    android:layout_gravity="center_vertical" />
+
+            </LinearLayout>
+
+            <com.google.android.material.divider.MaterialDivider
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="0dp"
+                android:layout_marginEnd="0dp"
+                app:dividerColor="#262626"/>
+
+            <!-- Grid lines (rule of thirds) row -->
+            <LinearLayout
+                android:id="@+id/row_grid_lines"
+                style="@style/SettingsGroupRow"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:fontFamily="@font/materialicons"
+                    android:text="grid_on"
+                    android:textColor="?attr/colorHeading"
+                    android:textSize="18sp"
+                    android:gravity="center" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tv_grid_lines_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/grid_lines_title"
+                        android:textColor="?attr/colorHeading"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textAlignment="viewStart"
+                        android:layout_marginBottom="2dp" />
+
+                    <TextView
+                        android:id="@+id/tv_grid_lines_sub"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/grid_lines_subtitle"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="11sp"
+                        android:textAlignment="viewStart" />
+                </LinearLayout>
+
+                <com.fadcam.ui.AvatarToggleView
+                    android:id="@+id/switch_grid_lines"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_marginStart="0dp"
+                    android:layout_gravity="center_vertical" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Group: Mini Apps -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="20dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/mini_apps_group_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/mini_apps_title"
+                android:textColor="?attr/colorHeading"
+                android:textStyle="bold"
+                android:textAlignment="viewStart"/>
+
+            <ImageView
+                android:id="@+id/btn_mini_apps_info"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:padding="2dp"
+                android:src="@drawable/ic_info"
+                android:tint="?attr/colorHeading"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/desc_mini_apps_info" />
+
+            <TextView
+                android:id="@+id/btn_mini_apps_edit"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="12dp"
+                android:padding="2dp"
+                android:fontFamily="@font/materialicons"
+                android:text="edit"
+                android:textColor="?attr/colorHeading"
+                android:textSize="16sp"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/desc_mini_apps_edit" />
+
+        </LinearLayout>
+
+        <!-- Mini apps group card wrapper -->
+        <LinearLayout
+            android:id="@+id/mini_apps_list_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/settings_group_card_bg">
+
+            <!-- Torch Mini App -->
+            <LinearLayout
+                android:id="@+id/row_mini_app_torch"
+                style="@style/SettingsGroupRow"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <!-- Torch icon using Material Icons ligature -->
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:fontFamily="@font/materialicons"
+                    android:text="flashlight_on"
+                    android:textColor="?attr/colorHeading"
+                    android:textSize="18sp"
+                    android:gravity="center" />
+
+                <!-- Torch title and subtitle -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_torch_title"
+                        android:textColor="?attr/colorHeading"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textAlignment="viewStart"
+                        android:layout_marginBottom="2dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_torch_desc"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="11sp"
+                        android:textAlignment="viewStart"
+                        android:maxLines="2"
+                        android:ellipsize="none" />
+
+                </LinearLayout>
+
+                <!-- Arrow -->
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray" />
+
+            </LinearLayout>
+
+            <!-- Divider between mini apps -->
+<com.google.android.material.divider.MaterialDivider
+                android:id="@+id/divider_mini_app_1"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="0dp"
+                android:layout_marginEnd="0dp"
+                app:dividerColor="#262626"/>
+
+            <!-- QR Scanner Mini App (READY) -->
+            <LinearLayout
+                android:id="@+id/row_mini_app_qr_scanner"
+                style="@style/SettingsGroupRow"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:gravity="center"
+                    android:text="qr_code_scanner"
+                    android:textSize="20sp"
+                    android:textColor="?attr/colorHeading"
+                    android:fontFamily="@font/materialicons" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_qr_scanner_title"
+                        android:textStyle="bold"
+                        android:textSize="15sp"
+                        android:textColor="?attr/colorHeading"
+                        android:textAlignment="viewStart"
+                        android:layout_marginBottom="2dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_qr_scanner_desc"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="11sp"
+                        android:textAlignment="viewStart"
+                        android:maxLines="2"
+                        android:ellipsize="none" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray"/>
+            </LinearLayout>
+
+            <!-- Divider between mini apps -->
+<com.google.android.material.divider.MaterialDivider
+                android:id="@+id/divider_mini_app_2"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="0dp"
+                android:layout_marginEnd="0dp"
+                app:dividerColor="#262626"/>
+
+            <!-- Compass Mini App - Coming Soon -->
+            <LinearLayout
+                android:id="@+id/row_mini_app_compass"
+                style="@style/SettingsGroupRow"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <!-- Compass icon using Material Icons ligature -->
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:fontFamily="@font/materialicons"
+                    android:text="explore"
+                    android:textColor="?attr/colorHeading"
+                    android:textSize="18sp"
+                    android:gravity="center" />
+
+                <!-- Compass title and subtitle -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/mini_app_compass_title"
+                            android:textColor="?attr/colorHeading"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:textAlignment="viewStart"
+                            android:layout_marginBottom="2dp" />
+
+                        <!-- Coming Soon Badge -->
+                        <TextView
+                            android:id="@+id/badge_compass_coming_soon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="16dp"
+                            android:paddingHorizontal="6dp"
+                            android:text="@string/mini_app_coming_soon"
+                            android:textColor="@android:color/white"
+                            android:textSize="8sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:background="@drawable/bg_coming_soon_badge"
+                            android:layout_marginStart="0dp" />
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_compass_desc"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="11sp"
+                        android:textAlignment="viewStart"
+                        android:maxLines="2"
+                        android:ellipsize="none" />
+
+                </LinearLayout>
+
+                <!-- Arrow -->
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray" />
+
+            </LinearLayout>
+
+            <!-- Divider between mini apps -->
+<com.google.android.material.divider.MaterialDivider
+                android:id="@+id/divider_mini_app_3"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="0dp"
+                android:layout_marginEnd="0dp"
+                app:dividerColor="#262626"/>
+
+            <!-- Sound Meter Mini App - Coming Soon -->
+            <LinearLayout
+                android:id="@+id/row_mini_app_sound_meter"
+                style="@style/SettingsGroupRow"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <!-- Sound Meter icon using Material Icons ligature -->
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:fontFamily="@font/materialicons"
+                    android:text="graphic_eq"
+                    android:textColor="?attr/colorHeading"
+                    android:textSize="18sp"
+                    android:gravity="center" />
+
+                <!-- Sound Meter title and subtitle -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/mini_app_sound_meter_title"
+                            android:textColor="?attr/colorHeading"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:textAlignment="viewStart"
+                            android:layout_marginBottom="2dp" />
+
+                        <!-- Coming Soon Badge -->
+                        <TextView
+                            android:id="@+id/badge_sound_meter_coming_soon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="16dp"
+                            android:paddingHorizontal="6dp"
+                            android:text="@string/mini_app_coming_soon"
+                            android:textColor="@android:color/white"
+                            android:textSize="8sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:background="@drawable/bg_coming_soon_badge"
+                            android:layout_marginStart="0dp" />
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_sound_meter_desc"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="11sp"
+                        android:textAlignment="viewStart"
+                        android:maxLines="2"
+                        android:ellipsize="none" />
+
+                </LinearLayout>
+
+                <!-- Arrow -->
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray" />
+
+            </LinearLayout>
+
+            <!-- Divider between mini apps -->
+<com.google.android.material.divider.MaterialDivider
+                android:id="@+id/divider_mini_app_4"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="0dp"
+                android:layout_marginEnd="0dp"
+                app:dividerColor="#262626"/>
+
+            <!-- Sensor Dashboard Mini App - Coming Soon -->
+            <LinearLayout
+                android:id="@+id/row_mini_app_sensor_dashboard"
+                style="@style/SettingsGroupRow"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <!-- Sensor Dashboard icon using Material Icons ligature -->
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:fontFamily="@font/materialicons"
+                    android:text="sensors"
+                    android:textColor="?attr/colorHeading"
+                    android:textSize="18sp"
+                    android:gravity="center" />
+
+                <!-- Sensor Dashboard title and subtitle -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/mini_app_sensor_dashboard_title"
+                            android:textColor="?attr/colorHeading"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:textAlignment="viewStart"
+                            android:layout_marginBottom="2dp" />
+
+                        <!-- Coming Soon Badge -->
+                        <TextView
+                            android:id="@+id/badge_sensor_dashboard_coming_soon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="16dp"
+                            android:paddingHorizontal="6dp"
+                            android:text="@string/mini_app_coming_soon"
+                            android:textColor="@android:color/white"
+                            android:textSize="8sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:background="@drawable/bg_coming_soon_badge"
+                            android:layout_marginStart="0dp" />
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_sensor_dashboard_desc"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="11sp"
+                        android:textAlignment="viewStart"
+                        android:maxLines="2"
+                        android:ellipsize="none" />
+
+                </LinearLayout>
+
+                <!-- Arrow -->
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray" />
+
+            </LinearLayout>
+
+            <View android:id="@+id/divider_mini_app_5" style="@style/SettingsDivider" />
+
+            <!-- Speedometer Mini App -->
+            <LinearLayout
+                android:id="@+id/row_mini_app_speedometer"
+                style="@style/SettingsGroupRow">
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:gravity="center"
+                    android:text="speed"
+                    android:textSize="22sp"
+                    android:textColor="?attr/colorHeading"
+                    android:fontFamily="@font/materialicons" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_speedometer_title"
+                        android:textStyle="bold"
+                        android:textSize="15sp"
+                        android:textColor="?attr/colorHeading"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_speedometer_desc"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="12sp"/>
+                </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="0dp"
+                    android:background="@drawable/bg_coming_soon_badge"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:text="@string/mini_app_coming_soon"
+                    android:textColor="#FFFFFF"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray"/>
+            </LinearLayout>
+            <View android:id="@+id/divider_mini_app_6" style="@style/SettingsDivider" />
+
+            <!-- Clinometer Mini App -->
+            <LinearLayout
+                android:id="@+id/row_mini_app_clinometer"
+                style="@style/SettingsGroupRow">
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:gravity="center"
+                    android:text="architecture"
+                    android:textSize="22sp"
+                    android:textColor="?attr/colorHeading"
+                    android:fontFamily="@font/materialicons" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_clinometer_title"
+                        android:textStyle="bold"
+                        android:textSize="15sp"
+                        android:textColor="?attr/colorHeading"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_clinometer_desc"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="12sp"/>
+                </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="0dp"
+                    android:background="@drawable/bg_coming_soon_badge"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:text="@string/mini_app_coming_soon"
+                    android:textColor="#FFFFFF"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray"/>
+            </LinearLayout>
+            <View android:id="@+id/divider_mini_app_7" style="@style/SettingsDivider" />
+
+            <!-- Pedometer Mini App -->
+            <LinearLayout
+                android:id="@+id/row_mini_app_pedometer"
+                style="@style/SettingsGroupRow">
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:gravity="center"
+                    android:text="directions_walk"
+                    android:textSize="22sp"
+                    android:textColor="?attr/colorHeading"
+                    android:fontFamily="@font/materialicons" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_pedometer_title"
+                        android:textStyle="bold"
+                        android:textSize="15sp"
+                        android:textColor="?attr/colorHeading"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_pedometer_desc"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="12sp"/>
+                </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="0dp"
+                    android:background="@drawable/bg_coming_soon_badge"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:text="@string/mini_app_coming_soon"
+                    android:textColor="#FFFFFF"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray"/>
+            </LinearLayout>
+            <View android:id="@+id/divider_mini_app_8" style="@style/SettingsDivider" />
+
+            <!-- Metal Detector Mini App -->
+            <LinearLayout
+                android:id="@+id/row_mini_app_metal_detector"
+                style="@style/SettingsGroupRow">
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:gravity="center"
+                    android:text="travel_explore"
+                    android:textSize="22sp"
+                    android:textColor="?attr/colorHeading"
+                    android:fontFamily="@font/materialicons" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_metal_detector_title"
+                        android:textStyle="bold"
+                        android:textSize="15sp"
+                        android:textColor="?attr/colorHeading"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_metal_detector_desc"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="12sp"/>
+                </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="0dp"
+                    android:background="@drawable/bg_coming_soon_badge"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:text="@string/mini_app_coming_soon"
+                    android:textColor="#FFFFFF"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray"/>
+            </LinearLayout>
+            <View android:id="@+id/divider_mini_app_9" style="@style/SettingsDivider" />
+
+            <!-- Parking Marker Mini App -->
+            <LinearLayout
+                android:id="@+id/row_mini_app_parking_marker"
+                style="@style/SettingsGroupRow">
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:gravity="center"
+                    android:text="location_on"
+                    android:textSize="22sp"
+                    android:textColor="?attr/colorHeading"
+                    android:fontFamily="@font/materialicons" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_parking_marker_title"
+                        android:textStyle="bold"
+                        android:textSize="15sp"
+                        android:textColor="?attr/colorHeading"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_parking_marker_desc"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="12sp"/>
+                </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="0dp"
+                    android:background="@drawable/bg_coming_soon_badge"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:text="@string/mini_app_coming_soon"
+                    android:textColor="#FFFFFF"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray"/>
+            </LinearLayout>
+            <View android:id="@+id/divider_mini_app_10" style="@style/SettingsDivider" />
+
+            <!-- QR Generator Mini App -->
+            <LinearLayout
+                android:id="@+id/row_mini_app_qr_generator"
+                style="@style/SettingsGroupRow">
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:gravity="center"
+                    android:text="qr_code_2"
+                    android:textSize="22sp"
+                    android:textColor="?attr/colorHeading"
+                    android:fontFamily="@font/materialicons" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_qr_generator_title"
+                        android:textStyle="bold"
+                        android:textSize="15sp"
+                        android:textColor="?attr/colorHeading"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mini_app_qr_generator_desc"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="12sp"/>
+                </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="0dp"
+                    android:background="@drawable/bg_coming_soon_badge"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:text="@string/mini_app_coming_soon"
+                    android:textColor="#FFFFFF"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray"/>
+            </LinearLayout>
+
+            <View android:id="@+id/divider_mini_app_see_all" style="@style/SettingsDivider" />
+
+            <!-- See all mini apps -->
+            <LinearLayout
+                android:id="@+id/row_mini_apps_see_all"
+                style="@style/SettingsGroupRow"
+                android:layout_height="wrap_content"
+                android:minHeight="52dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:fontFamily="@font/materialicons"
+                    android:text="apps"
+                    android:textColor="?attr/colorHeading"
+                    android:textSize="18sp"
+                    android:gravity="center" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sidebar_see_all_mini_apps"
+                        android:textColor="?attr/colorHeading"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textAlignment="viewStart" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sidebar_see_all_mini_apps_desc"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="11sp"
+                        android:textAlignment="viewStart" />
+
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Group: Help & Support -->
+        <TextView
+            android:id="@+id/help_group_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/help_section"
+            android:textColor="?attr/colorHeading"
+            android:paddingTop="20dp"
+            android:paddingBottom="8dp"
+            android:textStyle="bold"
+            android:textAlignment="viewStart"/>
+
+        <!-- Help group card wrapper -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+
+
+            android:background="@drawable/settings_group_card_bg">
+
+            <!-- What's New row -->
+            <LinearLayout
+                android:id="@+id/row_whats_new"
+                style="@style/SettingsGroupRow"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <!-- What's New icon using Material Icons ligature -->
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:fontFamily="@font/materialicons"
+                    android:text="new_releases"
+                    android:textColor="?attr/colorHeading"
+                    android:textSize="18sp"
+                    android:gravity="center" />
+
+                <!-- What's New title and subtitle -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/whats_new_title"
+                            android:textColor="?attr/colorHeading"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:textAlignment="viewStart"
+                            android:layout_marginBottom="2dp" />
+
+                        <!-- What's New Badge -->
+                        <TextView
+                            android:id="@+id/badge_whats_new"
+                            android:layout_width="wrap_content"
+                            android:layout_height="16dp"
+                            android:paddingHorizontal="6dp"
+                            android:text="@string/badge_new"
+                            android:textColor="@android:color/white"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:background="@drawable/bg_coming_soon_badge"
+                            android:layout_marginStart="0dp"
+                            android:visibility="gone" />
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/whats_new_subtitle"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="11sp"
+                        android:textAlignment="viewStart" />
+
+                </LinearLayout>
+
+                <!-- Arrow -->
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray" />
+
+            </LinearLayout>
+
+            <!-- Divider between rows -->
+            <com.google.android.material.divider.MaterialDivider
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="0dp"
+                android:layout_marginEnd="0dp"
+                app:dividerColor="#262626"/>
+
+            <!-- Tips row -->
+            <LinearLayout
+                android:id="@+id/row_tips"
+                style="@style/SettingsGroupRow"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <!-- Tips icon using Material Icons ligature -->
+                <TextView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:fontFamily="@font/materialicons"
+                    android:text="lightbulb"
+                    android:textColor="?attr/colorHeading"
+                    android:textSize="18sp"
+                    android:gravity="center" />
+
+                <!-- Tips title and subtitle -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/tips_title"
+                        android:textColor="?attr/colorHeading"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textAlignment="viewStart"
+                        android:layout_marginBottom="2dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/tips_subtitle"
+                        android:textColor="@android:color/darker_gray"
+                        android:textSize="11sp"
+                        android:textAlignment="viewStart" />
+
+                </LinearLayout>
+
+                <!-- Arrow -->
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/ic_arrow_right"
+                    android:tint="@android:color/darker_gray" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Spacer to push branding footer to bottom -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- Branding footer -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingTop="24dp"
+            android:paddingBottom="8dp">
+
+            <!-- Discord row -->
+            <LinearLayout
+                android:id="@+id/row_discord_branding"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="8dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="0dp"
+                    android:src="@drawable/ic_discord" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_sidebar_discord"
+                    android:textColor="?attr/pickerTextPrimary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <!-- Copyright -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/home_sidebar_copyright"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="11sp"
+                android:gravity="center" />
+
+        </LinearLayout>
+
+</LinearLayout>
+
+</ScrollView>

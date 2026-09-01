@@ -1,0 +1,43 @@
+SportBestCam Build 0002.8.2 — Front Camera Gesture Scoring
+Date: 2026-08-27
+
+BASE
+- Apply on top of 0002.8.1a.
+
+CHANGE
+- GestureScoringEngine no longer reads TextureView.getBitmap() from the recording preview.
+- Gesture analysis uses a separate hidden FRONT-camera Camera2 + ImageReader YUV stream.
+- The rear camera remains the match-recording camera and its encoder/Media3 path is untouched.
+- Front-camera frames are never displayed, encoded, saved, streamed, or attached to the recording.
+- Strict Android concurrent-camera confirmation is required (API 30+ getConcurrentCameraIds through DualCameraCapability).
+- NO fallback to the rear recording camera if concurrent front+rear is unsupported.
+- Front analysis is mirrored for intuitive operator left/right scoring zones.
+- Portrait / landscape / reverse-landscape analysis orientation is corrected from front sensor + display rotation.
+- Analysis stream is deliberately small and sampled at about 5 fps to limit CPU/thermal impact.
+- Existing hold time, re-arm, 1-finger +1, 2-finger -1, local OpenCV detection and score callbacks remain.
+
+FILES
+- app/src/main/java/com/fadcam/handball/GestureScoringEngine.java
+- app/src/main/res/values/sbc_gesture_front_strings.xml
+- app/src/main/res/values-ro/sbc_gesture_front_strings.xml
+
+NOT CHANGED
+- RecordingService / encoder / Media3
+- HomeFragment integration signature
+- FullscreenPreviewActivity integration signature
+- Goal detection / calibration
+- rotation fix 0002.7.0
+- public storage 0002.8.1
+- dual-camera recording implementation
+
+TEST
+1. Build GitHub Actions: ./gradlew assembleDefaultDebug --stacktrace --no-daemon --max-workers=2
+2. Match recording -> Gesture Scoring ON -> REC using rear camera.
+3. Face the display/front camera; do NOT put the hand in front of the rear camera.
+4. Operator-left + one finger, hold configured time => Team A +1.
+5. Lower hand ~0.6s, then operator-right + one finger => Team B +1.
+6. Two fingers => -1 on the respective side.
+7. Confirm fingers never appear in the rear-camera video.
+8. Pause video: gestures must stop; resume: gestures may restart.
+9. Fullscreen enter/exit: gesture front camera must release/reacquire without changing recording.
+10. Unsupported phone: preference is forced OFF and a clear message appears; rear-camera fallback must never occur.

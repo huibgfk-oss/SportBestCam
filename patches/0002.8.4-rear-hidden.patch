@@ -1,0 +1,177 @@
+diff --git a/app/src/main/java/com/fadcam/handball/HandballMatchController.java b/app/src/main/java/com/fadcam/handball/HandballMatchController.java
+--- a/app/src/main/java/com/fadcam/handball/HandballMatchController.java
++++ b/app/src/main/java/com/fadcam/handball/HandballMatchController.java
+@@ -367,3 +367,4 @@
+         mode.setEnabled(!profileLockedByRecording);
+         mode.setAlpha(profileLockedByRecording ? 0.45f : 1f);
++        final boolean recordingLocked = profileLockedByRecording;
+         box.addView(mode, rowLp(d));
+@@ -409,4 +409,12 @@
+         gestureInfo.setTextSize(11.5f);
+         gestureInfo.setPadding(8 * d, 0, 8 * d, 5 * d);
+         box.addView(gestureInfo);
++        Button gestureSource = setupButton("", Color.rgb(69, 90, 100));
++        box.addView(gestureSource, rowLp(d));
++        TextView gestureSourceInfo = new TextView(context);
++        gestureSourceInfo.setTextColor(Color.GRAY);
++        gestureSourceInfo.setTextSize(11.5f);
++        gestureSourceInfo.setPadding(8 * d, 0, 8 * d, 5 * d);
++        box.addView(gestureSourceInfo);
++        updateGestureSourceUi(gestureSource, gestureSourceInfo);
+         long gestureHoldMs = prefs.getLong(
+@@ -450,9 +450,14 @@
+         Runnable updateEnabledState = () -> {
+             boolean enabled = matchRecording;
+             for (View v : new View[]{
+-                    teams, scoreboardStyle, matchSummary, auto, gesture,
+-                    gestureInfo, gestureHold, gestureVibration, calL, calR}) {
++                    teams, scoreboardStyle, matchSummary, auto,
++                    gestureInfo, gestureSourceInfo, gestureHold, gestureVibration, calL, calR}) {
+                 v.setEnabled(enabled);
+                 v.setAlpha(enabled ? 1f : 0.42f);
+             }
++            boolean gestureGeometryEditable = enabled && !recordingLocked;
++            gesture.setEnabled(gestureGeometryEditable);
++            gesture.setAlpha(gestureGeometryEditable ? 1f : 0.42f);
++            gestureSource.setEnabled(gestureGeometryEditable);
++            gestureSource.setAlpha(gestureGeometryEditable ? 1f : 0.42f);
+             modeInfo.setText(enabled
+@@ -494,5 +494,7 @@
+         gesture.setOnCheckedChangeListener((button, checked) ->
+                 prefs.edit().putBoolean(GestureScoringEngine.KEY_ENABLED, checked).apply());
++        gestureSource.setOnClickListener(v ->
++                showGestureSourceDialog(gestureSource, gestureSourceInfo));
+         gestureVibration.setOnCheckedChangeListener((button, checked) ->
+                 prefs.edit().putBoolean(GestureScoringEngine.KEY_VIBRATION, checked).apply());
+         gestureHold.setOnClickListener(v -> showGestureHoldDialog(gestureHold));
+@@ -505 +505,40 @@
++    private void updateGestureSourceUi(Button target, TextView info) {
++        boolean rearHidden = GestureScoringEngine.isRearHiddenSource(prefs);
++        int labelId = rearHidden
++                ? R.string.sbc_gesture_source_rear_hidden
++                : R.string.sbc_gesture_source_front;
++        int infoId = rearHidden
++                ? R.string.sbc_gesture_source_rear_info
++                : R.string.sbc_gesture_source_front_info;
++        target.setText(context.getString(R.string.sbc_gesture_source_label,
++                context.getString(labelId)));
++        info.setText(context.getString(infoId));
++    }
++
++    private void showGestureSourceDialog(Button target, TextView info) {
++        final String[] labels = {
++                context.getString(R.string.sbc_gesture_source_front),
++                context.getString(R.string.sbc_gesture_source_rear_hidden)
++        };
++        final boolean rearHidden = GestureScoringEngine.isRearHiddenSource(prefs);
++        new AlertDialog.Builder(context)
++                .setTitle(context.getString(R.string.sbc_gesture_source_title))
++                .setSingleChoiceItems(labels, rearHidden ? 1 : 0, (dialog, which) -> {
++                    String source = which == 1
++                            ? GestureScoringEngine.SOURCE_REAR_HIDDEN
++                            : GestureScoringEngine.SOURCE_FRONT_CONCURRENT;
++                    prefs.edit().putString(GestureScoringEngine.KEY_SOURCE, source).apply();
++                    updateGestureSourceUi(target, info);
++                    if (which == 0
++                            && !GestureScoringEngine.isFrontGestureCameraSupported(context)) {
++                        Toast.makeText(context,
++                                context.getString(R.string.sbc_gesture_front_unsupported),
++                                Toast.LENGTH_LONG).show();
++                    }
++                    dialog.dismiss();
++                })
++                .setNegativeButton(context.getString(R.string.sbc_close), null)
++                .show();
++    }
++
+     private void showGestureHoldDialog(Button target) {
+diff --git a/app/src/main/java/com/fadcam/opengl/GLRecordingPipeline.java b/app/src/main/java/com/fadcam/opengl/GLRecordingPipeline.java
+--- a/app/src/main/java/com/fadcam/opengl/GLRecordingPipeline.java
++++ b/app/src/main/java/com/fadcam/opengl/GLRecordingPipeline.java
+@@ -165,2 +165,5 @@
+     private volatile boolean frontVideoMirrorEnabled;
++    // SportBestCam: locked at REC start. When true, encoder removes the outer
++    // rear-camera gesture zones; live preview remains uncropped.
++    private volatile boolean rearGestureCropEnabled;
+     // Audio recording/encoding fields
+@@ -538,4 +538,11 @@
+             glRenderer.setFullscreenCameraIsFront(front);
+         }
+     }
++
++    public void setRearGestureCropEnabled(boolean enabled) {
++        rearGestureCropEnabled = enabled;
++        if (glRenderer != null) {
++            glRenderer.setRearGestureCropEnabled(enabled);
++        }
++    }
+     /**
+@@ -588,3 +588,4 @@
+                 glRenderer.setRecordingPipeline(this); // Set reference for timestamp synchronization
+                 glRenderer.setFrontVideoMirrorEnabled(frontVideoMirrorEnabled);
++                glRenderer.setRearGestureCropEnabled(rearGestureCropEnabled);
+                 // Propagate encoder dimensions that were computed during initializeEncoder().
+diff --git a/app/src/main/java/com/fadcam/opengl/GLWatermarkRenderer.java b/app/src/main/java/com/fadcam/opengl/GLWatermarkRenderer.java
+--- a/app/src/main/java/com/fadcam/opengl/GLWatermarkRenderer.java
++++ b/app/src/main/java/com/fadcam/opengl/GLWatermarkRenderer.java
+@@ -203,4 +203,10 @@
+     private int encoderWidth;
+     private int encoderHeight;
++    // Rear hidden-zone Gesture Scoring crops only the encoded MP4, never preview.
++    // Keep this value in sync with GestureScoringEngine.REAR_HIDDEN_CROP_FRACTION.
++    private static final float REAR_GESTURE_CROP_FRACTION = 0.125f;
++    private volatile boolean rearGestureCropEnabled = false;
++    private final float[] rearGestureCropMatrix = new float[16];
++    private final float[] rearGestureCroppedTexMatrix = new float[16];
+ 
+     public interface OnFrameAvailableListener {
+@@ -236,4 +236,8 @@
+         updateMatrices();
+     }
+ 
++    public void setRearGestureCropEnabled(boolean enabled) {
++        this.rearGestureCropEnabled = enabled;
++    }
++
+     /**
+@@ -304,3 +304,8 @@
+         watermarkRectBuffer.put(WATERMARK_RECT_VERTICES).position(0);
+         Matrix.setIdentityM(latestTexMatrix, 0);
++        Matrix.setIdentityM(rearGestureCropMatrix, 0);
++        Matrix.translateM(rearGestureCropMatrix, 0,
++                REAR_GESTURE_CROP_FRACTION, REAR_GESTURE_CROP_FRACTION, 0f);
++        float usable = 1f - (2f * REAR_GESTURE_CROP_FRACTION);
++        Matrix.scaleM(rearGestureCropMatrix, 0, usable, usable, 1f);
+     }
+@@ -690,4 +690,12 @@
+                 if (camerasSwapped && isFullscreenCameraFront() && frontVideoMirrorEnabled) {
+                     fsTexMatrix = applyHorizontalTexFlip(fsTexMatrix);
+                 }
++                // Rear hidden-zone fallback: center-crop only the encoder texture.
++                // The preview remains full-frame so the operator can place the hand
++                // in the outer control zones. Never alter dual-camera/PiP composition.
++                if (rearGestureCropEnabled && !pipEnabled) {
++                    Matrix.multiplyMM(rearGestureCroppedTexMatrix, 0,
++                            fsTexMatrix, 0, rearGestureCropMatrix, 0);
++                    fsTexMatrix = rearGestureCroppedTexMatrix;
++                }
+                 if (mFullFrameBlit != null) {
+diff --git a/app/src/main/java/com/fadcam/services/RecordingService.java b/app/src/main/java/com/fadcam/services/RecordingService.java
+--- a/app/src/main/java/com/fadcam/services/RecordingService.java
++++ b/app/src/main/java/com/fadcam/services/RecordingService.java
+@@ -6896,3 +6896,15 @@
+             }
++            // Lock Gesture Scoring geometry for this MP4 at REC START. If Rear hidden
++            // zone is not selected/enabled, the encoder remains byte-for-byte on its
++            // normal geometry path with no additional crop.
++            android.content.SharedPreferences gesturePrefs =
++                    getSharedPreferences("handball_match", MODE_PRIVATE);
++            boolean rearGestureCropEnabled =
++                    gesturePrefs.getBoolean(
++                            com.fadcam.handball.GestureScoringEngine.KEY_ENABLED, false)
++                    && com.fadcam.handball.SportRecordingProfile.isMatchRecording(gesturePrefs)
++                    && com.fadcam.handball.GestureScoringEngine.isRearHiddenSource(gesturePrefs);
++            glRecordingPipeline.setRearGestureCropEnabled(rearGestureCropEnabled);
++            FLog.i(TAG, "[GESTURE] rearHiddenCrop=" + rearGestureCropEnabled);
+             glRecordingPipeline.prepareSurfaces();
+             // Notify RemoteStreamManager that recording started

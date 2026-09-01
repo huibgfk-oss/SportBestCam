@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="records_recursive_group_title">Storage search</string>
+    <string name="records_recursive_choose_folder_title">Choose folder to search</string>
+    <string name="records_recursive_choose_folder_none">No explicit search folder selected</string>
+    <string name="records_recursive_choose_folder_selected">Selected: %1$s</string>
+    <string name="records_recursive_search_title">Refresh &amp; Recursive Search – All Folders</string>
+    <string name="records_recursive_search_subtitle">Search accessible storage plus the explicitly selected folder</string>
+    <string name="records_recursive_search_helper">For old recordings that Android does not expose through MediaStore, select their exact folder first. The selected folder is scanned directly through SAF and is not used as the recording destination.</string>
+    <string name="records_recursive_search_progress_title">Searching all folders…</string>
+    <string name="records_recursive_search_progress_message">Running a full recursive search. This can take a little longer on large storage.</string>
+    <string name="records_recursive_search_result_title">Recursive search complete</string>
+    <string name="records_recursive_search_result_message">Videos in Records: %1$d\nImages in Records: %2$d\nTotal indexed: %3$d\nPreviously indexed: %4$d\nFound in selected folder: %5$d\nAlready added: %6$d\nReady to add: %7$d\nSearch time: %8$d ms</string>
+    <string name="records_recursive_search_error_title">Recursive search failed</string>
+    <string name="records_recursive_search_error_message">The full storage search could not be completed.\n\n%1$s</string>
+    <string name="records_default_access_title">Allow access to Movies/SportBestCam</string>
+    <string name="records_default_access_not_granted">Permission not granted yet</string>
+    <string name="records_default_access_granted">Persistent folder access granted</string>
+    <string name="records_default_access_error_title">Folder access failed</string>
+    <string name="records_default_access_error_message">Android did not grant persistent read access. Please choose Movies/SportBestCam and confirm “Use this folder”.</string>
+    <string name="records_recursive_review_found">Review found</string>
+    <string name="records_recursive_add_all">Add all</string>
+    <string name="records_recursive_add_selected">Add selected</string>
+    <string name="records_recursive_found_items_title">Found media not yet in Records</string>
+    <string name="records_recursive_add_complete_title">Added to Records</string>
+    <string name="records_recursive_add_complete_message">Added %1$d item(s) to Records.</string>
+    <string name="records_recursive_unknown_name">Unnamed media</string>
+</resources>

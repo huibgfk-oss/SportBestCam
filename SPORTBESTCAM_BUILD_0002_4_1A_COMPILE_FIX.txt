@@ -1,0 +1,4 @@
+SportBestCam Build 0002.4.1a Compile Fix
+- Fixes FastFileScanner lambda compilation caused by the legacy-folder fallback.
+- Keeps SportBestCam and legacy FadCam folder compatibility.
+- No UI/camera/recording changes.

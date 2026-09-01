@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sbc_gesture_source_title">Sursa Gesture Scoring</string>
+    <string name="sbc_gesture_source_label">Sursa gesturilor: %1$s</string>
+    <string name="sbc_gesture_source_front">Camera frontală (dual camera)</string>
+    <string name="sbc_gesture_source_rear_hidden">Zone ascunse camera spate</string>
+    <string name="sbc_gesture_source_front_info">Folosește în fundal camera frontală pentru analiză, în timp ce camera din spate filmează. Necesită suport simultan frontală + spate. Filmarea nu este crop-uită.</string>
+    <string name="sbc_gesture_source_rear_info">Variantă de rezervă pentru telefoanele fără dual-camera. Gestul se face la marginea extremă stânga/dreapta a preview-ului camerei din spate. Numai când acest mod este activ, filmarea finală este crop-uită central astfel încât zonele de gest să nu fie înregistrate.</string>
+</resources>

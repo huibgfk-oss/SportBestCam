@@ -1,0 +1,27 @@
+SportBestCam Build 0002.5.3 Match / Controls Fix
+
+Fixes:
+- Match timer now checks HomeFragment's live RecordingState instead of relying only on handball SharedPreferences.
+- Video PAUSE immediately pauses match timer; Video RESUME immediately resumes only a timer paused by video.
+- Video STOP pauses timer but does NOT mark it for automatic resume on a later recording.
+- Front-camera Mirror is toggled directly from SportBestCam Camera Tools and pushed to the running renderer/service.
+- Mirror menu explains when the back camera is active.
+- Sport microphone button now visibly indicates ACTIVE (green), MUTED (red), or audio-disabled (gray), even with classic actions hidden.
+- Classic quick actions are OFF by default and cannot be resurrected by original UI refresh logic unless explicitly enabled.
+- This prevents the hourglass/max-duration icon from appearing in the middle of Sport Mode.
+- Fullscreen is removed from Camera Tools because Sport Mode already has a dedicated fullscreen button.
+- Compatibility access remains through optional Classic Actions (Timer/Mic/Photo/Full).
+
+Match setup:
+- Default labels changed from Gazde/Oaspeți to Echipa A/Echipa B.
+- Historical untouched defaults are migrated automatically.
+- Presets: Handbal 2x30, Handbal 2x25, Handbal 2x20, Fotbal 2x45, Futsal 2x20, Baschet 4x10, Box 3x3, Custom.
+- Custom adds a free-text sport/description field (examples: Fotbal, Box, Turneu U16).
+- Custom still supports 1–8 periods/rounds and 1–60 minutes.
+
+Recorded video overlay:
+- Includes sport/match type or custom description.
+- Includes full Team A / Team B names, score, match time and period/round.
+- Existing SportBestCam watermark and recording functionality are preserved.
+
+All compatibility, rotation, gallery, Media3, auto-goal, calibration, fullscreen HUD and rebrand fixes remain.

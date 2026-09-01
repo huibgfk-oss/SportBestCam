@@ -1,0 +1,12 @@
+SportBestCam Build 0002.5.2 Match UX Fix
+
+- Match timer can no longer run while video recording is stopped or paused.
+- Pausing video automatically pauses match timer. Resuming video automatically resumes it only if video pause caused the timer pause.
+- Fullscreen Preview timer is tappable; paused timer shows a play marker and can be resumed without adding a duplicate button.
+- New Match dialog rebuilt with explicit readable colors and match-type list: 2x30, 2x25, 2x20, Custom.
+- Custom supports 1-8 halves and 1-60 minutes/half.
+- Goal-detection confirmation is now a compact top banner, no screen dim, auto-dismisses after 4.5 seconds.
+- Goal prompt includes: no goal, do not ask again for current match, and Auto Goal OFF.
+- New Match clears the per-match do-not-ask state.
+- Team-name areas now use remaining HUD width and auto-size text; selected short-name limit increased from 10/14 to 18 chars.
+- All Build 0002.5.1 compatibility, rebrand, camera, folder, Media3 and UI fixes are preserved.

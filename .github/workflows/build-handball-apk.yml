@@ -3,11 +3,12 @@ name: Build SportBestCam APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     env:
       GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
 
@@ -33,58 +34,6 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Restore persistent SportBestCam debug signing key
-        env:
-          SPORTBESTCAM_DEBUG_KEYSTORE_B64: ${{ secrets.SPORTBESTCAM_DEBUG_KEYSTORE_B64 }}
-        run: |
-          set -euo pipefail
-
-          if [ -z "${SPORTBESTCAM_DEBUG_KEYSTORE_B64:-}" ]; then
-            echo "ERROR: GitHub secret SPORTBESTCAM_DEBUG_KEYSTORE_B64 is missing."
-            exit 1
-          fi
-
-          SOURCE_P12="$RUNNER_TEMP/sportbestcam-debug.p12"
-          DEBUG_KEYSTORE="$HOME/.android/debug.keystore"
-
-          mkdir -p "$HOME/.android"
-          rm -f "$SOURCE_P12" "$DEBUG_KEYSTORE"
-
-          if ! printf '%s' "$SPORTBESTCAM_DEBUG_KEYSTORE_B64" | base64 --decode > "$SOURCE_P12"; then
-            echo "ERROR: SPORTBESTCAM_DEBUG_KEYSTORE_B64 is not valid Base64."
-            exit 1
-          fi
-
-          echo "Decoded persistent signing key: $(stat -c%s "$SOURCE_P12") bytes"
-          echo "Decoded key SHA256: $(sha256sum "$SOURCE_P12" | awk '{print $1}')"
-
-          if ! openssl pkcs12 -in "$SOURCE_P12" -passin pass:android -noout; then
-            echo "ERROR: Decoded secret is not the expected PKCS12 keystore."
-            exit 1
-          fi
-
-          keytool -importkeystore \
-            -srckeystore "$SOURCE_P12" \
-            -srcstoretype PKCS12 \
-            -srcstorepass android \
-            -srcalias androiddebugkey \
-            -srckeypass android \
-            -destkeystore "$DEBUG_KEYSTORE" \
-            -deststoretype JKS \
-            -deststorepass android \
-            -destalias androiddebugkey \
-            -destkeypass android \
-            -noprompt
-
-          chmod 600 "$DEBUG_KEYSTORE"
-
-          keytool -list \
-            -keystore "$DEBUG_KEYSTORE" \
-            -storepass android \
-            -alias androiddebugkey >/dev/null
-
-          echo "Persistent SportBestCam debug signing key installed successfully."
-
       - name: Set monotonic CI versionCode
         run: |
           set -euo pipefail
@@ -105,6 +54,7 @@ jobs:
             safe="${safe/fadcam/SportBestCam}"
             cp "$apk" "out/$safe"
           done
+          ls -lah out
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

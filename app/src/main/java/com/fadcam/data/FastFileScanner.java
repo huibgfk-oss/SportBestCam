@@ -698,7 +698,7 @@ public class FastFileScanner {
             // Deduplicate the same physical media discovered through SAF, MediaStore
             // and file fallback while preserving two genuinely different files.
             String name = e.displayName == null ? "" : e.displayName.toLowerCase(Locale.ROOT);
-            String physicalKey = name + "|" + e.fileSize + "|" + e.lastModified;
+            String physicalKey = name + "|" + e.fileSize;
             if (!unique.containsKey(physicalKey)) unique.put(physicalKey, e);
         }
         return new ArrayList<>(unique.values());

@@ -1,0 +1,15 @@
+SPORTBESTCAM 0002.10.4 — SFX AUDIO FIX2
+
+The previous apply script aborted because the real GLRecordingPipeline contains
+a blank line between Arrays.fill(...) and the closing brace of if (audioMuted).
+
+FIX2:
+- tolerates blank lines;
+- scans up to 6 lines for the closing brace;
+- scans up to 6 lines for `int offset = 0;`;
+- inserts exactly one SportEffectsAudioMixer.mixIntoPcm16() call between them;
+- verifies the hook appears once;
+- verifies the live monitor is USAGE_MEDIA with volume 1.0;
+- sets beta10.9.
+
+The already-pushed commit 6e5f790 does not need to be reverted.

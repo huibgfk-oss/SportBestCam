@@ -72,7 +72,7 @@ android {
                 check(releaseSigningConfigValid) { "Stable SportBestCam signing requested but KEYSTORE_FILE is missing." }
                 signingConfig = signingConfigs.getByName("release")
             }
-            versionNameSuffix = "-beta10.8" // SportBestCam 0002.10.2 stable signing FIX2
+            versionNameSuffix = "-beta10.9" // SportBestCam 0002.10.4 SFX audio FIX2
             resValue("string", "app_name", "SportBestCam Beta")
         }
         

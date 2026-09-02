@@ -3651,6 +3651,15 @@ public class GLRecordingPipeline {
                             java.util.Arrays.fill(readBuffer, 0, read, (byte) 0);
 
                         }
+                        // SportBestCam Live FX: mix synthesized SFX into the
+                        // captured PCM before it enters the AAC encoder.
+                        com.fadcam.effects.SportEffectsAudioMixer.mixIntoPcm16(
+                                readBuffer,
+                                read,
+                                audioSampleRate,
+                                audioChannelCount
+                        );
+
                         int offset = 0;
                         while (offset < read && audioThreadRunning && !isPaused) {
                             int inputBufferIndex = audioEncoder.dequeueInputBuffer(10000);

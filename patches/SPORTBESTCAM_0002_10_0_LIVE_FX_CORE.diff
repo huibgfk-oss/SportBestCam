@@ -1,0 +1,52 @@
+diff --git a/app/src/main/java/com/fadcam/opengl/GLRecordingPipeline.java b/app/src/main/java/com/fadcam/opengl/GLRecordingPipeline.java
+--- a/app/src/main/java/com/fadcam/opengl/GLRecordingPipeline.java
++++ b/app/src/main/java/com/fadcam/opengl/GLRecordingPipeline.java
+@@ -358,7 +358,10 @@
+                         } catch (Exception e) {
+                             FLog.w(TAG, "Watermark update failed", e);
+                         }
+-                        watermarkUpdateHandler.postDelayed(this, 1000); // 1 second constant
++                        // Live FX: animate the encoded overlay while active, then fall back
++                        // to the original low-frequency watermark updater.
++                        long nextDelayMs = com.fadcam.effects.SportEffectsState.isVisualActive() ? 160L : 1000L;
++                        watermarkUpdateHandler.postDelayed(this, nextDelayMs);
+                     }
+                 }
+             };
+@@ -3425,6 +3428,10 @@
+                         if (audioMuted) {
+                             // Realtime mute: encode silence (track stays continuous).
+                             java.util.Arrays.fill(readBuffer, 0, read, (byte) 0);
+                         }
++                        // SportBestCam Live FX: mix generated SFX directly into PCM before
++                        // AAC encoding. This remains clean even when ambient mic audio is muted.
++                        com.fadcam.effects.SportEffectsAudioMixer.mixIntoPcm16(
++                                readBuffer, read, audioSampleRate, audioChannelCount);
+                         int offset = 0;
+                         while (offset < read && audioThreadRunning && !isPaused) {
+                             int inputBufferIndex = audioEncoder.dequeueInputBuffer(10000);
+diff --git a/app/src/main/java/com/fadcam/opengl/GLWatermarkRenderer.java b/app/src/main/java/com/fadcam/opengl/GLWatermarkRenderer.java
+--- a/app/src/main/java/com/fadcam/opengl/GLWatermarkRenderer.java
++++ b/app/src/main/java/com/fadcam/opengl/GLWatermarkRenderer.java
+@@ -1527,6 +1527,10 @@
+         if (payload != null && !payload.isEmpty()) {
+             drawForensicsOverlay(canvas, payload);
+         }
++        // SportBestCam Live FX uses the same full-frame transparent texture as
++        // Digital Forensics, so the effect is burned into the encoded MP4 while
++        // remaining independent from the normal watermark text.
++        com.fadcam.effects.SportEffectsFrameRenderer.draw(canvas);
+         android.graphics.Matrix flipMatrix = new android.graphics.Matrix();
+         flipMatrix.preScale(1.0f, -1.0f);
+         Bitmap flippedBitmap = Bitmap.createBitmap(forensicsOverlayBitmap, 0, 0, forensicsOverlayBitmap.getWidth(),
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -62,7 +62,7 @@
+         debug {
+             applicationIdSuffix = ".beta"
+             isDebuggable = true
+-            versionNameSuffix = "-beta10.6" // Increment the beta version suffix for each release. Use `beta1` for the first beta release, then `beta2`, etc.
++            versionNameSuffix = "-beta10.7" // SportBestCam 0002.10.0 Live FX
+             resValue("string", "app_name", "SportBestCam Beta")
+         }

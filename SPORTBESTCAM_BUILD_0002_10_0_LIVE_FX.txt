@@ -1,0 +1,102 @@
+SPORTBESTCAM BUILD 0002.10.0 — LIVE FX
+
+Scop
+====
+Efecte vizuale și audio care pot fi declanșate în timpul filmării, fără a
+părăsi Fullscreen Preview.
+
+Quick FX — un singur touch
+==========================
+Pe marginea ecranului apare o bară compactă:
+- ♥    Raining Hearts
+- B    BOOM
+- ⚡   Raining Thunder
+- G    Goal of the Match
+- 📣   Goal Horn
+- FX   Lista completă
+
+Lista completă
+==============
+VISUAL + AUDIO
+- Raining Hearts + sparkle
+- BOOM + boom SFX
+- Raining Thunder + thunder SFX
+- Goal of the Match + goal horn
+- Subscribe to Channel + chime
+- Give a Like + chime
+- Confetti + applause
+- Raining Stars + sparkle
+- Fire + stadium cheer
+
+VISUAL
+- Slide Left
+- Slide Right
+
+AUDIO
+- Goal Horn
+- Applause
+- Referee Whistle
+- Stadium Cheer
+- Thunder Sound
+
+Cum funcționează
+================
+Preview:
+- SportEffectsOverlayView desenează la ~30 FPS peste imaginea live.
+
+MP4:
+- efectele sunt desenate în textura full-frame a GLWatermarkRenderer;
+- aceeași animație este arsă în fișierul video;
+- nu este doar un widget Android peste preview.
+
+Audio:
+- SFX-urile sunt generate procedural, fără fișiere audio terțe;
+- PCM-ul efectului este mixat direct înainte de encoderul AAC;
+- dacă microfonul este pe MUTE, SFX-ul poate rămâne în pista audio;
+- dacă înregistrarea este configurată fără pistă audio, evident nu există
+  o pistă în care SFX-ul să fie mixat.
+
+Compatibilitate
+===============
+- Match recording: DA
+- Simple video: DA
+- scoreboard existent: păstrat
+- Digital Forensics overlay: păstrat; payload-ul este combinat, nu înlocuit
+- rotația/geometry existentă: neatinsă
+- gesture scoring: neatins
+- stable signing 0002.9.1: inclus cumulativ dacă nu a fost aplicat încă
+
+Performanță
+===========
+Updater-ul watermark rămâne la 1 sec în mod normal. Numai cât timp un efect
+vizual este activ trece temporar la 160 ms, pentru a evita încărcarea GL
+permanentă.
+
+Aplicare
+========
+1. Descarcă ZIP-ul.
+2. În Termux:
+
+cd ~/SportBestCam
+git switch main
+git pull --ff-only origin main
+
+unzip -o /storage/emulated/0/Download/SportBestCam_0002.10.0_LiveFX_patch.zip -d ~/SportBestCam
+
+bash ~/SportBestCam/APPLY_SPORTBESTCAM_0002_10_0.sh
+
+git add .
+git commit -m "SportBestCam 0002.10.0 Live FX visual and audio effects"
+git push origin main
+
+Dacă stable signing 0002.9.1 nu a fost configurat încă:
+bash ~/SportBestCam/SETUP_SPORTBESTCAM_SIGNING.sh
+apoi push.
+
+Notă
+====
+Fișierele GLRecordingPipeline.java și GLWatermarkRenderer.java sunt foarte mari.
+ZIP-ul conține fișierele noi/finale direct în structura repo-ului, iar cele
+trei modificări punctuale din fișierele mari sunt aplicate printr-un diff
+verificat cu `git apply --check`, pentru a nu suprascrie accidental alte
+schimbări din encoder.

@@ -52,6 +52,54 @@ public final class SportEffectsFrameRenderer {
             case FIRE:
                 drawFire(canvas, p, fade);
                 break;
+            case VICTORY_BURST:
+                drawVictoryBurst(canvas, p, fade);
+                break;
+            case MVP:
+                drawMvp(canvas, p, fade);
+                break;
+            case LASERS:
+                drawLasers(canvas, p, fade);
+                break;
+            case NEON_PULSE:
+                drawNeonPulse(canvas, p, fade);
+                break;
+            case SPOTLIGHT:
+                drawSpotlight(canvas, p, fade);
+                break;
+            case SPEED_LINES:
+                drawSpeedLines(canvas, p, fade);
+                break;
+            case RAINBOW:
+                drawRainbow(canvas, p, fade);
+                break;
+            case SNOW:
+                drawSnow(canvas, p, fade);
+                break;
+            case BUBBLES:
+                drawBubbles(canvas, p, fade);
+                break;
+            case SMOKE:
+                drawSmoke(canvas, p, fade);
+                break;
+            case CROWN:
+                drawCrown(canvas, p, fade);
+                break;
+            case CAMERA_FLASH:
+                drawCameraFlash(canvas, p, fade);
+                break;
+            case RED_CARD:
+                drawCard(canvas, p, fade, true);
+                break;
+            case YELLOW_CARD:
+                drawCard(canvas, p, fade, false);
+                break;
+            case SCORE_POP:
+                drawScorePop(canvas, p, fade);
+                break;
+            case RIBBONS:
+                drawRibbons(canvas, p, fade);
+                break;
             default:
                 break;
         }
@@ -285,6 +333,515 @@ public final class SportEffectsFrameRenderer {
             f.close();
             c.drawPath(f, outer);
             c.drawCircle(x, baseY - flameH * 0.30f, Math.max(6f, w * 0.011f), inner);
+        }
+    }
+
+
+    private static void drawVictoryBurst(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+        float cx = w * 0.5f;
+        float cy = h * 0.5f;
+        float burst = easeOut(Math.min(1f, p * 2.2f));
+
+        Paint ring = stroke(
+                Color.rgb(255, 214, 64),
+                Math.max(4f, w * 0.005f),
+                210 * fade
+        );
+        for (int i = 0; i < 4; i++) {
+            float r = Math.min(w, h)
+                    * (0.10f + 0.095f * i + 0.08f * burst);
+            c.drawCircle(cx, cy, r, ring);
+        }
+
+        Paint ray = stroke(
+                Color.rgb(255, 152, 0),
+                Math.max(5f, w * 0.006f),
+                230 * fade
+        );
+        for (int i = 0; i < 20; i++) {
+            double a = i * Math.PI * 2.0 / 20.0;
+            float r1 = Math.min(w, h) * 0.22f;
+            float r2 = Math.min(w, h) * (0.34f + 0.10f * burst);
+            c.drawLine(
+                    cx + (float) Math.cos(a) * r1,
+                    cy + (float) Math.sin(a) * r1,
+                    cx + (float) Math.cos(a) * r2,
+                    cy + (float) Math.sin(a) * r2,
+                    ray
+            );
+        }
+
+        Paint title = text(
+                Color.WHITE,
+                Math.max(40f, w * 0.072f),
+                255 * fade
+        );
+        title.setFakeBoldText(true);
+        title.setShadowLayer(10f, 0, 4f, Color.BLACK);
+        drawCenteredText(
+                c,
+                "VICTORY!",
+                cx,
+                cy - (title.ascent() + title.descent()) / 2f,
+                title
+        );
+    }
+
+    private static void drawMvp(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+        float pop = easeOut(Math.min(1f, p / 0.18f));
+        float bw = w * 0.55f * pop;
+        float bh = h * 0.30f;
+
+        RectF card = new RectF(
+                w * 0.5f - bw * 0.5f,
+                h * 0.34f,
+                w * 0.5f + bw * 0.5f,
+                h * 0.34f + bh
+        );
+
+        Paint bg = fill(Color.rgb(8, 15, 35), 230 * fade);
+        Paint gold = stroke(
+                Color.rgb(255, 193, 7),
+                Math.max(5f, w * 0.005f),
+                250 * fade
+        );
+        c.drawRoundRect(card, bh * 0.12f, bh * 0.12f, bg);
+        c.drawRoundRect(card, bh * 0.12f, bh * 0.12f, gold);
+
+        Paint title = text(
+                Color.rgb(255, 215, 64),
+                Math.max(50f, w * 0.085f),
+                255 * fade
+        );
+        title.setFakeBoldText(true);
+        drawCenteredText(
+                c,
+                "MVP",
+                card.centerX(),
+                card.centerY() - (title.ascent() + title.descent()) / 2f,
+                title
+        );
+
+        Paint small = text(
+                Color.WHITE,
+                Math.max(19f, w * 0.025f),
+                255 * fade
+        );
+        drawCenteredText(
+                c,
+                "PLAYER OF THE MATCH",
+                card.centerX(),
+                card.bottom - bh * 0.16f,
+                small
+        );
+    }
+
+    private static void drawLasers(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+        int[] colors = {
+                Color.rgb(0, 255, 220),
+                Color.rgb(255, 0, 200),
+                Color.rgb(70, 140, 255),
+                Color.rgb(255, 235, 59)
+        };
+
+        for (int i = 0; i < 12; i++) {
+            Paint laser = stroke(
+                    colors[i % colors.length],
+                    Math.max(3f, w * 0.003f),
+                    210 * fade
+            );
+            float shift = ((p * 1.8f + pseudo(i, 122)) % 1f) * w;
+            float y1 = pseudo(i, 123) * h;
+            float y2 = pseudo(i, 124) * h;
+            c.drawLine(
+                    -w * 0.15f + shift,
+                    y1,
+                    w * 0.35f + shift,
+                    y2,
+                    laser
+            );
+        }
+    }
+
+    private static void drawNeonPulse(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+        float cx = w * 0.5f;
+        float cy = h * 0.5f;
+        int[] colors = {
+                Color.rgb(0, 255, 255),
+                Color.rgb(255, 0, 170),
+                Color.rgb(130, 80, 255)
+        };
+
+        for (int i = 0; i < 6; i++) {
+            float phase = (p * 2.4f + i * 0.17f) % 1f;
+            float r = Math.min(w, h) * (0.08f + 0.40f * phase);
+            Paint ring = stroke(
+                    colors[i % colors.length],
+                    Math.max(4f, w * 0.0045f),
+                    (1f - phase) * 230f * fade
+            );
+            c.drawCircle(cx, cy, r, ring);
+        }
+    }
+
+    private static void drawSpotlight(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+        float sweep = (float) Math.sin(p * Math.PI * 2.0);
+        float cx = w * (0.5f + sweep * 0.20f);
+        float cy = h * 0.50f;
+
+        Paint dark = fill(Color.BLACK, 105 * fade);
+        c.drawRect(0, 0, w, h, dark);
+
+        Paint ring = stroke(
+                Color.WHITE,
+                Math.max(7f, w * 0.007f),
+                245 * fade
+        );
+        c.drawCircle(cx, cy, Math.min(w, h) * 0.23f, ring);
+        c.drawCircle(
+                cx,
+                cy,
+                Math.min(w, h) * 0.27f,
+                stroke(
+                        Color.rgb(255, 215, 64),
+                        Math.max(3f, w * 0.003f),
+                        150 * fade
+                )
+        );
+    }
+
+    private static void drawSpeedLines(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+        float cx = w * 0.5f;
+        float cy = h * 0.5f;
+
+        for (int i = 0; i < 38; i++) {
+            double a = pseudo(i, 130) * Math.PI * 2.0;
+            float start = Math.min(w, h)
+                    * (0.12f + pseudo(i, 131) * 0.12f);
+            float length = Math.min(w, h)
+                    * (0.08f + pseudo(i, 132) * 0.23f)
+                    * (0.6f + 0.4f * easeOut(p));
+            Paint line = stroke(
+                    Color.WHITE,
+                    Math.max(2f, w * 0.0025f),
+                    (100f + pseudo(i, 133) * 150f) * fade
+            );
+
+            c.drawLine(
+                    cx + (float) Math.cos(a) * start,
+                    cy + (float) Math.sin(a) * start,
+                    cx + (float) Math.cos(a) * (start + length),
+                    cy + (float) Math.sin(a) * (start + length),
+                    line
+            );
+        }
+    }
+
+    private static void drawRainbow(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+        int[] colors = {
+                Color.rgb(244, 67, 54),
+                Color.rgb(255, 152, 0),
+                Color.rgb(255, 235, 59),
+                Color.rgb(76, 175, 80),
+                Color.rgb(33, 150, 243),
+                Color.rgb(103, 58, 183)
+        };
+
+        RectF oval = new RectF(
+                w * 0.08f,
+                h * 0.16f,
+                w * 0.92f,
+                h * 0.98f
+        );
+        float start = 190f + p * 70f;
+        for (int i = 0; i < colors.length; i++) {
+            Paint arc = stroke(
+                    colors[i],
+                    Math.max(8f, w * 0.012f),
+                    220 * fade
+            );
+            RectF r = new RectF(
+                    oval.left + i * w * 0.012f,
+                    oval.top + i * h * 0.018f,
+                    oval.right - i * w * 0.012f,
+                    oval.bottom - i * h * 0.018f
+            );
+            c.drawArc(r, start, 160f, false, arc);
+        }
+    }
+
+    private static void drawSnow(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+
+        for (int i = 0; i < 46; i++) {
+            float x = pseudo(i, 141) * w;
+            float speed = 0.55f + pseudo(i, 142) * 0.80f;
+            float y = ((pseudo(i, 143) + p * speed * 1.5f) % 1.12f) * h;
+            float r = Math.max(3f, w * (0.0028f + pseudo(i, 144) * 0.006f));
+            c.drawCircle(
+                    x,
+                    y,
+                    r,
+                    fill(Color.WHITE, (150f + pseudo(i, 145) * 100f) * fade)
+            );
+        }
+    }
+
+    private static void drawBubbles(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+
+        for (int i = 0; i < 28; i++) {
+            float x = pseudo(i, 151) * w;
+            float y = h - (
+                    ((pseudo(i, 152) + p * (0.6f + pseudo(i, 153)))
+                            % 1.15f)
+                            * h
+            );
+            float r = Math.min(w, h)
+                    * (0.014f + pseudo(i, 154) * 0.045f);
+            Paint bubble = stroke(
+                    Color.rgb(120, 210, 255),
+                    Math.max(2f, w * 0.002f),
+                    170 * fade
+            );
+            c.drawCircle(x, y, r, bubble);
+            c.drawCircle(
+                    x - r * 0.30f,
+                    y - r * 0.30f,
+                    r * 0.12f,
+                    fill(Color.WHITE, 150 * fade)
+            );
+        }
+    }
+
+    private static void drawSmoke(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+
+        for (int i = 0; i < 22; i++) {
+            float x = w * (0.05f + pseudo(i, 161) * 0.90f);
+            float y = h * (
+                    0.90f - (
+                            (p * (0.35f + pseudo(i, 162) * 0.35f)
+                                    + pseudo(i, 163) * 0.20f)
+                                    % 0.75f
+                    )
+            );
+            float r = Math.min(w, h)
+                    * (0.035f + pseudo(i, 164) * 0.085f);
+            c.drawCircle(
+                    x,
+                    y,
+                    r,
+                    fill(
+                            Color.rgb(190, 200, 215),
+                            (30f + pseudo(i, 165) * 55f) * fade
+                    )
+            );
+        }
+    }
+
+    private static void drawCrown(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+        float cx = w * 0.5f;
+        float cy = h * 0.43f;
+        float s = Math.min(w, h) * (0.24f + 0.04f * (float) Math.sin(p * 12f));
+
+        Paint gold = fill(Color.rgb(255, 193, 7), 245 * fade);
+        Path crown = new Path();
+        crown.moveTo(cx - s, cy + s * 0.35f);
+        crown.lineTo(cx - s * 0.85f, cy - s * 0.55f);
+        crown.lineTo(cx - s * 0.30f, cy - s * 0.05f);
+        crown.lineTo(cx, cy - s * 0.72f);
+        crown.lineTo(cx + s * 0.30f, cy - s * 0.05f);
+        crown.lineTo(cx + s * 0.85f, cy - s * 0.55f);
+        crown.lineTo(cx + s, cy + s * 0.35f);
+        crown.close();
+        c.drawPath(crown, gold);
+
+        Paint title = text(
+                Color.WHITE,
+                Math.max(24f, w * 0.038f),
+                255 * fade
+        );
+        title.setShadowLayer(6f, 0, 2f, Color.BLACK);
+        drawCenteredText(
+                c,
+                "CHAMPION",
+                cx,
+                cy + s * 0.82f,
+                title
+        );
+    }
+
+    private static void drawCameraFlash(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+        float flash = p < 0.22f
+                ? 1f - p / 0.22f
+                : Math.max(0f, 0.35f - (p - 0.22f) * 0.45f);
+
+        c.drawRect(
+                0,
+                0,
+                w,
+                h,
+                fill(Color.WHITE, 255f * flash * fade)
+        );
+
+        Paint frame = stroke(
+                Color.WHITE,
+                Math.max(8f, w * 0.008f),
+                210 * fade
+        );
+        RectF r = new RectF(
+                w * 0.08f,
+                h * 0.10f,
+                w * 0.92f,
+                h * 0.90f
+        );
+        c.drawRoundRect(r, w * 0.025f, w * 0.025f, frame);
+    }
+
+    private static void drawCard(
+            Canvas c,
+            float p,
+            float fade,
+            boolean red
+    ) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+        float pop = easeOut(Math.min(1f, p / 0.18f));
+        float cw = w * 0.23f * pop;
+        float ch = h * 0.47f * pop;
+        float cx = w * 0.50f;
+        float cy = h * 0.50f;
+
+        RectF card = new RectF(
+                cx - cw * 0.5f,
+                cy - ch * 0.5f,
+                cx + cw * 0.5f,
+                cy + ch * 0.5f
+        );
+
+        c.save();
+        c.rotate(
+                red ? -8f + p * 12f : 8f - p * 12f,
+                cx,
+                cy
+        );
+        c.drawRoundRect(
+                card,
+                w * 0.018f,
+                w * 0.018f,
+                fill(
+                        red
+                                ? Color.rgb(220, 38, 38)
+                                : Color.rgb(250, 204, 21),
+                        245 * fade
+                )
+        );
+        c.restore();
+
+        Paint label = text(
+                Color.WHITE,
+                Math.max(25f, w * 0.040f),
+                255 * fade
+        );
+        label.setShadowLayer(6f, 0, 3f, Color.BLACK);
+        drawCenteredText(
+                c,
+                red ? "RED CARD" : "YELLOW CARD",
+                cx,
+                cy + ch * 0.72f,
+                label
+        );
+    }
+
+    private static void drawScorePop(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+        float scale = 0.65f + 0.45f * easeOut(Math.min(1f, p / 0.15f));
+
+        Paint bg = fill(Color.rgb(10, 25, 55), 225 * fade);
+        RectF band = new RectF(
+                w * 0.14f,
+                h * 0.36f,
+                w * 0.86f,
+                h * 0.64f
+        );
+        c.drawRoundRect(
+                band,
+                h * 0.05f,
+                h * 0.05f,
+                bg
+        );
+
+        Paint goal = text(
+                Color.rgb(255, 215, 64),
+                Math.max(48f, w * 0.09f) * scale,
+                255 * fade
+        );
+        goal.setFakeBoldText(true);
+        goal.setShadowLayer(10f, 0, 3f, Color.BLACK);
+        drawCenteredText(
+                c,
+                "GOAL!!!",
+                band.centerX(),
+                band.centerY() - (goal.ascent() + goal.descent()) / 2f,
+                goal
+        );
+    }
+
+    private static void drawRibbons(Canvas c, float p, float fade) {
+        int w = c.getWidth();
+        int h = c.getHeight();
+        int[] colors = {
+                Color.rgb(244, 63, 94),
+                Color.rgb(34, 197, 94),
+                Color.rgb(59, 130, 246),
+                Color.rgb(250, 204, 21),
+                Color.rgb(168, 85, 247)
+        };
+
+        for (int i = 0; i < 18; i++) {
+            Paint ribbon = stroke(
+                    colors[i % colors.length],
+                    Math.max(5f, w * 0.006f),
+                    225 * fade
+            );
+
+            Path path = new Path();
+            float baseX = pseudo(i, 171) * w;
+            float y0 = ((p * (0.75f + pseudo(i, 172)) + pseudo(i, 173)) % 1.2f) * h - h * 0.1f;
+            path.moveTo(baseX, y0);
+
+            for (int s = 1; s <= 5; s++) {
+                float y = y0 + s * h * 0.045f;
+                float x = baseX + (float) Math.sin(
+                        p * 18f + i + s * 1.4f
+                ) * w * 0.025f;
+                path.lineTo(x, y);
+            }
+
+            c.drawPath(path, ribbon);
         }
     }
 

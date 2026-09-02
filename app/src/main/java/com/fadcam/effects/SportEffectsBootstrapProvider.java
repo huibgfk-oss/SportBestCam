@@ -13,8 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 /**
- * Adds Live FX to FullscreenPreviewActivity without changing the very large
- * activity class. This provider is registered in the debug source set.
+ * Debug/Beta bootstrap for SportBestCam Live FX and GitHub Release updater.
  */
 public final class SportEffectsBootstrapProvider extends ContentProvider {
     @Override
@@ -23,35 +22,79 @@ public final class SportEffectsBootstrapProvider extends ContentProvider {
         if (!(context instanceof Application)) return true;
 
         Application app = (Application) context;
-        app.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
-            @Override
-            public void onActivityResumed(@NonNull Activity activity) {
-                if (isFullscreenPreview(activity)) {
-                    activity.getWindow().getDecorView().post(() ->
-                            SportEffectsController.attach(activity)
-                    );
-                }
-            }
+        app.registerActivityLifecycleCallbacks(
+                new Application.ActivityLifecycleCallbacks() {
+                    @Override
+                    public void onActivityResumed(
+                            @NonNull Activity activity
+                    ) {
+                        if (isFullscreenPreview(activity)) {
+                            activity.getWindow()
+                                    .getDecorView()
+                                    .post(() ->
+                                            SportEffectsController.attach(
+                                                    activity
+                                            )
+                                    );
+                        }
 
-            @Override
-            public void onActivityDestroyed(@NonNull Activity activity) {
-                if (isFullscreenPreview(activity)) {
-                    SportEffectsController.detach(activity);
-                }
-            }
+                        if (isMainActivity(activity)) {
+                            activity.getWindow()
+                                    .getDecorView()
+                                    .postDelayed(
+                                            () ->
+                                                    SportBestCamUpdateManager
+                                                            .onActivityResumed(
+                                                                    activity
+                                                            ),
+                                            1800L
+                                    );
+                        }
+                    }
 
-            @Override public void onActivityCreated(@NonNull Activity a, @Nullable Bundle b) {}
-            @Override public void onActivityStarted(@NonNull Activity a) {}
-            @Override public void onActivityPaused(@NonNull Activity a) {}
-            @Override public void onActivityStopped(@NonNull Activity a) {}
-            @Override public void onActivitySaveInstanceState(@NonNull Activity a, @NonNull Bundle b) {}
-        });
+                    @Override
+                    public void onActivityDestroyed(
+                            @NonNull Activity activity
+                    ) {
+                        if (isFullscreenPreview(activity)) {
+                            SportEffectsController.detach(activity);
+                        }
+                    }
+
+                    @Override
+                    public void onActivityCreated(
+                            @NonNull Activity a,
+                            @Nullable Bundle b
+                    ) {}
+
+                    @Override
+                    public void onActivityStarted(@NonNull Activity a) {}
+
+                    @Override
+                    public void onActivityPaused(@NonNull Activity a) {}
+
+                    @Override
+                    public void onActivityStopped(@NonNull Activity a) {}
+
+                    @Override
+                    public void onActivitySaveInstanceState(
+                            @NonNull Activity a,
+                            @NonNull Bundle b
+                    ) {}
+                }
+        );
 
         return true;
     }
 
     private boolean isFullscreenPreview(Activity activity) {
         return "com.fadcam.ui.FullscreenPreviewActivity".equals(
+                activity.getClass().getName()
+        );
+    }
+
+    private boolean isMainActivity(Activity activity) {
+        return "com.fadcam.MainActivity".equals(
                 activity.getClass().getName()
         );
     }
@@ -76,7 +119,10 @@ public final class SportEffectsBootstrapProvider extends ContentProvider {
 
     @Nullable
     @Override
-    public Uri insert(@NonNull Uri uri, @Nullable ContentValues values) {
+    public Uri insert(
+            @NonNull Uri uri,
+            @Nullable ContentValues values
+    ) {
         return null;
     }
 

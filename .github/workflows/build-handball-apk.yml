@@ -5,6 +5,9 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -52,25 +55,15 @@ jobs:
           mkdir -p "$HOME/.android"
           rm -f "$SOURCE_P12" "$DEBUG_KEYSTORE"
 
-          if ! printf '%s' "$SPORTBESTCAM_DEBUG_KEYSTORE_B64" | base64 --decode > "$SOURCE_P12"; then
-            echo "ERROR: SPORTBESTCAM_DEBUG_KEYSTORE_B64 is not valid Base64."
-            exit 1
-          fi
+          printf '%s' "$SPORTBESTCAM_DEBUG_KEYSTORE_B64" \
+            | base64 --decode > "$SOURCE_P12"
 
-          if [ ! -s "$SOURCE_P12" ]; then
-            echo "ERROR: decoded keystore is empty."
-            exit 1
-          fi
+          test -s "$SOURCE_P12"
 
-          echo "Persistent PKCS#12 keystore restored: $(stat -c%s "$SOURCE_P12") bytes"
-
-          if ! openssl pkcs12 \
-              -in "$SOURCE_P12" \
-              -passin pass:android \
-              -noout; then
-            echo "ERROR: decoded secret is not the expected PKCS#12 keystore."
-            exit 1
-          fi
+          openssl pkcs12 \
+            -in "$SOURCE_P12" \
+            -passin pass:android \
+            -noout
 
           keytool -importkeystore \
             -srckeystore "$SOURCE_P12" \
@@ -92,55 +85,148 @@ jobs:
             -storepass android \
             -alias androiddebugkey >/dev/null
 
-          echo "Persistent SportBestCam signing key installed."
-          echo "Certificate fingerprint:"
-          keytool -list -v \
-            -keystore "$DEBUG_KEYSTORE" \
-            -storepass android \
-            -alias androiddebugkey \
-            | grep -E 'SHA256:|SHA-256:' \
-            | head -1 || true
+          CERT_SHA256="$(
+            keytool -list -v \
+              -keystore "$DEBUG_KEYSTORE" \
+              -storepass android \
+              -alias androiddebugkey \
+              | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' \
+              | head -n1
+          )"
+
+          echo "SPORTBESTCAM_CERT_SHA256=$CERT_SHA256" >> "$GITHUB_ENV"
+          echo "Signing SHA256: $CERT_SHA256"
 
       - name: Set monotonic CI versionCode
         run: |
           set -euo pipefail
+
           CI_VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))
-          sed -i -E "s/versionCode = [0-9]+/versionCode = ${CI_VERSION_CODE}/" app/build.gradle.kts
-          echo "CI versionCode: ${CI_VERSION_CODE}"
-          grep -n "versionCode =" app/build.gradle.kts | head -1
+
+          sed -i -E \
+            "s/versionCode = [0-9]+/versionCode = ${CI_VERSION_CODE}/" \
+            app/build.gradle.kts
+
+          echo "CI_VERSION_CODE=$CI_VERSION_CODE" >> "$GITHUB_ENV"
+          echo "CI versionCode: $CI_VERSION_CODE"
+
+      - name: Resolve version name
+        run: |
+          set -euo pipefail
+
+          BASE_VERSION="$(
+            sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' \
+              app/build.gradle.kts \
+              | head -n1
+          )"
+
+          DEBUG_SUFFIX="$(
+            sed -n 's/.*versionNameSuffix = "\([^"]*\)".*/\1/p' \
+              app/build.gradle.kts \
+              | head -n1
+          )"
+
+          FULL_VERSION="${BASE_VERSION}${DEBUG_SUFFIX}"
+
+          test -n "$FULL_VERSION"
+
+          echo "SPORTBESTCAM_FULL_VERSION=$FULL_VERSION" >> "$GITHUB_ENV"
+          echo "Version: $FULL_VERSION"
 
       - name: Build SportBestCam debug APK
-        run: ./gradlew assembleDefaultDebug --stacktrace --no-daemon --max-workers=2
+        run: |
+          ./gradlew assembleDefaultDebug \
+            --stacktrace \
+            --no-daemon \
+            --max-workers=2
 
       - name: Collect SportBestCam APK
         run: |
           set -euo pipefail
+
           mkdir -p out
-          find app/build/outputs/apk -name '*.apk' -type f | while read -r apk; do
-            base="$(basename "$apk")"
-            safe="${base/FadCam/SportBestCam}"
-            safe="${safe/fadcam/SportBestCam}"
-            cp "$apk" "out/$safe"
-          done
+
+          find app/build/outputs/apk \
+            -name '*.apk' \
+            -type f \
+            | while read -r apk; do
+                base="$(basename "$apk")"
+                safe="${base/FadCam/SportBestCam}"
+                safe="${safe/fadcam/SportBestCam}"
+                cp "$apk" "out/$safe"
+              done
+
           ls -lah out
 
       - name: Verify APK signing certificate
         run: |
           set -euo pipefail
+
           found=0
+
           for apk in out/*.apk; do
             [ -f "$apk" ] || continue
             found=1
+
             echo "=== $(basename "$apk") ==="
-            keytool -printcert -jarfile "$apk" \
-              | grep -E 'SHA256:|SHA-256:' \
-              | head -1 || true
+
+            APK_CERT="$(
+              keytool -printcert -jarfile "$apk" \
+                | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' \
+                | head -n1
+            )"
+
+            echo "APK SHA256 certificate: $APK_CERT"
+
+            if [ -n "${SPORTBESTCAM_CERT_SHA256:-}" ] \
+                && [ "$APK_CERT" != "$SPORTBESTCAM_CERT_SHA256" ]; then
+              echo "ERROR: APK signing certificate differs from persistent key."
+              exit 1
+            fi
           done
+
           [ "$found" -eq 1 ]
 
-      - name: Upload APK
+      - name: Upload CI artifact
         uses: actions/upload-artifact@v4
         with:
           name: SportBestCam-APK-${{ github.run_number }}
           path: out/*.apk
           if-no-files-found: error
+
+      - name: Publish GitHub Release for in-app updater
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          TAG="android-v${CI_VERSION_CODE}"
+          TITLE="SportBestCam ${SPORTBESTCAM_FULL_VERSION} (build ${CI_VERSION_CODE})"
+
+          cat > "$RUNNER_TEMP/release-notes.txt" <<EOF
+          SportBestCam Android update
+
+          Version: ${SPORTBESTCAM_FULL_VERSION}
+          versionCode: ${CI_VERSION_CODE}
+          Signing certificate SHA256: ${SPORTBESTCAM_CERT_SHA256}
+
+          The SportBestCam in-app updater validates:
+          - package name
+          - higher versionCode
+          - same signing certificate
+          before opening the Android package installer.
+          EOF
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" out/*.apk --clobber
+            gh release edit "$TAG" \
+              --title "$TITLE" \
+              --notes-file "$RUNNER_TEMP/release-notes.txt"
+          else
+            gh release create "$TAG" out/*.apk \
+              --target "$GITHUB_SHA" \
+              --title "$TITLE" \
+              --notes-file "$RUNNER_TEMP/release-notes.txt"
+          fi
+
+          echo "Published release: $TAG"

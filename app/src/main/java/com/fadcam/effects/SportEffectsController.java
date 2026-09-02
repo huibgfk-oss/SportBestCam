@@ -112,7 +112,7 @@ public final class SportEffectsController {
         addQuickButton(quick, "💥", SportEffectsState.Effect.BOOM);
         addQuickButton(quick, "⚡", SportEffectsState.Effect.THUNDER);
         addQuickButton(quick, "🏆", SportEffectsState.Effect.GOAL_MATCH);
-        addQuickButton(quick, "📣", SportEffectsState.Effect.GOAL_HORN);
+        addQuickButton(quick, "🎉", SportEffectsState.Effect.CONFETTI);
 
         TextView more = smallButton("FX");
         more.setContentDescription("Open Live Effects");
@@ -176,27 +176,60 @@ public final class SportEffectsController {
         hint.setGravity(Gravity.CENTER);
         drawer.addView(hint, rowParams());
 
-        addSection("VISUAL + SFX");
+        addSection("POPULAR");
         addEffect("♥  Raining Hearts", SportEffectsState.Effect.HEARTS);
-        addEffect("BOOM  Explosion", SportEffectsState.Effect.BOOM);
+        addEffect("💥  BOOM Explosion", SportEffectsState.Effect.BOOM);
         addEffect("⚡  Raining Thunder", SportEffectsState.Effect.THUNDER);
         addEffect("🏆  Goal of the Match", SportEffectsState.Effect.GOAL_MATCH);
+        addEffect("🎉  Confetti Storm", SportEffectsState.Effect.CONFETTI);
+        addEffect("GOAL!!!  Score Pop", SportEffectsState.Effect.SCORE_POP);
+
+        addSection("SPORT");
+        addEffect("MVP  Player of the Match", SportEffectsState.Effect.MVP);
+        addEffect("Victory Burst", SportEffectsState.Effect.VICTORY_BURST);
+        addEffect("Champion Crown", SportEffectsState.Effect.CROWN);
+        addEffect("Spotlight", SportEffectsState.Effect.SPOTLIGHT);
+        addEffect("Speed Lines", SportEffectsState.Effect.SPEED_LINES);
+        addEffect("Red Card", SportEffectsState.Effect.RED_CARD);
+        addEffect("Yellow Card", SportEffectsState.Effect.YELLOW_CARD);
+        addEffect("Camera Flash", SportEffectsState.Effect.CAMERA_FLASH);
+
+        addSection("PARTY / STYLE");
+        addEffect("Laser Show", SportEffectsState.Effect.LASERS);
+        addEffect("Neon Pulse", SportEffectsState.Effect.NEON_PULSE);
+        addEffect("Victory Ribbons", SportEffectsState.Effect.RIBBONS);
+        addEffect("Raining Stars", SportEffectsState.Effect.STARS);
+        addEffect("Rainbow Sweep", SportEffectsState.Effect.RAINBOW);
+        addEffect("Snow / Ice", SportEffectsState.Effect.SNOW);
+        addEffect("Bubbles", SportEffectsState.Effect.BUBBLES);
+        addEffect("Fire Line", SportEffectsState.Effect.FIRE);
+        addEffect("Smoke Entrance", SportEffectsState.Effect.SMOKE);
+
+        addSection("SOCIAL / TITLES");
         addEffect("Subscribe to Channel", SportEffectsState.Effect.SUBSCRIBE);
         addEffect("+1  Give a Like", SportEffectsState.Effect.LIKE);
-        addEffect("Confetti", SportEffectsState.Effect.CONFETTI);
-        addEffect("Raining Stars", SportEffectsState.Effect.STARS);
-        addEffect("Fire", SportEffectsState.Effect.FIRE);
-
-        addSection("VISUAL");
         addEffect("Slide Left", SportEffectsState.Effect.SLIDE_LEFT);
         addEffect("Slide Right", SportEffectsState.Effect.SLIDE_RIGHT);
 
-        addSection("AUDIO");
+        addSection("AUDIO SFX");
         addEffect("📣  Goal Horn", SportEffectsState.Effect.GOAL_HORN);
+        addEffect("Air Horn", SportEffectsState.Effect.AIR_HORN);
         addEffect("Applause", SportEffectsState.Effect.APPLAUSE);
         addEffect("Referee Whistle", SportEffectsState.Effect.WHISTLE);
         addEffect("Stadium Cheer", SportEffectsState.Effect.STADIUM_CHEER);
         addEffect("Thunder Sound", SportEffectsState.Effect.THUNDER_SOUND);
+        addEffect("Drum Roll", SportEffectsState.Effect.DRUM_ROLL);
+        addEffect("Siren", SportEffectsState.Effect.SIREN);
+        addEffect("Camera Shutter", SportEffectsState.Effect.SHUTTER);
+        addEffect("Swoosh", SportEffectsState.Effect.SWOOSH);
+
+        addSection("APP");
+        TextView update = actionButton("CHECK FOR APP UPDATE");
+        update.setOnClickListener(v -> {
+            if (drawerPanel != null) drawerPanel.setVisibility(View.GONE);
+            SportBestCamUpdateManager.checkNow(activity);
+        });
+        drawer.addView(update, rowParams());
 
         TextView clear = actionButton("CLEAR VISUAL FX");
         clear.setOnClickListener(v -> {
@@ -213,7 +246,7 @@ public final class SportEffectsController {
 
         int screenWidth = activity.getResources().getDisplayMetrics().widthPixels;
         int screenHeight = activity.getResources().getDisplayMetrics().heightPixels;
-        int panelWidth = Math.min(dp(180), Math.round(screenWidth * 0.28f));
+        int panelWidth = Math.min(dp(220), Math.round(screenWidth * 0.32f));
         int panelHeight = Math.min(dp(430), Math.round(screenHeight * 0.72f));
 
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(

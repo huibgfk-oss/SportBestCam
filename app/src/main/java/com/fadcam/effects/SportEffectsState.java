@@ -1,36 +1,47 @@
 package com.fadcam.effects;
 
-import android.content.Context;
-
-/**
- * Process-wide live FX state.
- *
- * The fullscreen preview and the GL encoder run in the same application process,
- * so a small volatile state is enough to keep preview and recorded overlay in sync.
- */
+/** Process-wide Live FX state shared by preview and encoder. */
 public final class SportEffectsState {
-    public static final String DF_OVERLAY_PREFIX = "__DF_OVERLAY__:";
-    private static final String WM_SPLIT = "||wm||";
-    private static final long FRAME_STEP_MS = 160L;
-
     public enum Effect {
-        HEARTS("Raining Hearts", true, "SPARKLE", 4200L),
-        BOOM("BOOM", true, "BOOM", 2600L),
-        THUNDER("Raining Thunder", true, "THUNDER", 4200L),
-        SLIDE_LEFT("Slide Left", true, null, 2800L),
-        SLIDE_RIGHT("Slide Right", true, null, 2800L),
-        GOAL_MATCH("Goal of the Match", true, "GOAL_HORN", 4800L),
-        SUBSCRIBE("Subscribe to Channel", true, "CHIME", 4200L),
-        LIKE("Give a Like", true, "CHIME", 3400L),
-        CONFETTI("Confetti", true, "APPLAUSE", 4200L),
-        STARS("Raining Stars", true, "SPARKLE", 4200L),
-        FIRE("Fire", true, "STADIUM_CHEER", 3800L),
+        HEARTS("Raining Hearts", true, "SPARKLE", 4500L),
+        BOOM("BOOM Explosion", true, "BOOM", 2800L),
+        THUNDER("Raining Thunder", true, "THUNDER", 4600L),
+        GOAL_MATCH("Goal of the Match", true, "GOAL_HORN", 5200L),
+        VICTORY_BURST("Victory Burst", true, "STADIUM_CHEER", 5200L),
+        MVP("MVP Moment", true, "APPLAUSE", 5000L),
+        CONFETTI("Confetti Storm", true, "APPLAUSE", 4700L),
+        STARS("Raining Stars", true, "SPARKLE", 4500L),
+        FIRE("Fire Line", true, "STADIUM_CHEER", 4200L),
+        LASERS("Laser Show", true, "LASER", 4200L),
+        NEON_PULSE("Neon Pulse", true, "SYNTH_HIT", 4000L),
+        SPOTLIGHT("Spotlight", true, "DRUM_ROLL", 4500L),
+        SPEED_LINES("Speed Lines", true, "SWOOSH", 3300L),
+        RAINBOW("Rainbow Sweep", true, "CHIME", 4300L),
+        SNOW("Snow / Ice", true, "SPARKLE", 4500L),
+        BUBBLES("Bubbles", true, "CHIME", 4500L),
+        SMOKE("Smoke Entrance", true, "SWOOSH", 4500L),
+        CROWN("Champion Crown", true, "STADIUM_CHEER", 4500L),
+        CAMERA_FLASH("Camera Flash", true, "SHUTTER", 1800L),
+        RED_CARD("Red Card", true, "WHISTLE", 3400L),
+        YELLOW_CARD("Yellow Card", true, "WHISTLE", 3400L),
+        SCORE_POP("GOAL! Score Pop", true, "AIR_HORN", 3600L),
+        RIBBONS("Victory Ribbons", true, "APPLAUSE", 4600L),
+
+        SLIDE_LEFT("Slide Left", true, "SWOOSH", 3000L),
+        SLIDE_RIGHT("Slide Right", true, "SWOOSH", 3000L),
+        SUBSCRIBE("Subscribe to Channel", true, "CHIME", 4400L),
+        LIKE("Give a Like", true, "CHIME", 3600L),
 
         GOAL_HORN("Goal Horn", false, "GOAL_HORN", 0L),
+        AIR_HORN("Air Horn", false, "AIR_HORN", 0L),
         APPLAUSE("Applause", false, "APPLAUSE", 0L),
         WHISTLE("Referee Whistle", false, "WHISTLE", 0L),
         STADIUM_CHEER("Stadium Cheer", false, "STADIUM_CHEER", 0L),
-        THUNDER_SOUND("Thunder Sound", false, "THUNDER", 0L);
+        THUNDER_SOUND("Thunder Sound", false, "THUNDER", 0L),
+        DRUM_ROLL("Drum Roll", false, "DRUM_ROLL", 0L),
+        SIREN("Siren", false, "SIREN", 0L),
+        SHUTTER("Camera Shutter", false, "SHUTTER", 0L),
+        SWOOSH("Swoosh", false, "SWOOSH", 0L);
 
         public final String label;
         public final boolean visual;
@@ -71,7 +82,11 @@ public final class SportEffectsState {
         long now = System.currentTimeMillis();
 
         if (effect.visual) {
-            activeVisual = new Active(effect, now, Math.max(800L, effect.durationMs));
+            activeVisual = new Active(
+                    effect,
+                    now,
+                    Math.max(800L, effect.durationMs)
+            );
         }
 
         if (effect.audioKind != null && !effect.audioKind.isEmpty()) {
@@ -97,43 +112,6 @@ public final class SportEffectsState {
 
     public static boolean isVisualActive() {
         return snapshot() != null;
-    }
-
-    /**
-     * Adds a harmless FX token to the existing full-screen overlay payload.
-     * GLWatermarkRenderer ignores this token as a digital-forensics box, but its
-     * changing frame id forces the overlay texture to refresh while an FX is active.
-     *
-     * Existing Digital Forensics entries are preserved byte-for-byte.
-     */
-    public static String wrapWatermark(Context context, String baseText) {
-        String base = baseText == null ? "" : baseText;
-        Active active = snapshot();
-        if (active == null) return base;
-
-        long now = System.currentTimeMillis();
-        long step = Math.max(0L, (now - active.startedAtMs) / FRAME_STEP_MS);
-        String fxToken = "FX:" + active.effect.name() + ":" + step;
-
-        if (base.startsWith(DF_OVERLAY_PREFIX)) {
-            String rest = base.substring(DF_OVERLAY_PREFIX.length());
-            int split = rest.indexOf(WM_SPLIT);
-            if (split >= 0) {
-                String existingPayload = rest.substring(0, split);
-                String watermark = rest.substring(split + WM_SPLIT.length());
-                String merged = existingPayload == null || existingPayload.trim().isEmpty()
-                        ? fxToken
-                        : existingPayload + ";" + fxToken;
-                return DF_OVERLAY_PREFIX + merged + WM_SPLIT + watermark;
-            }
-
-            String merged = rest == null || rest.trim().isEmpty()
-                    ? fxToken
-                    : rest + ";" + fxToken;
-            return DF_OVERLAY_PREFIX + merged;
-        }
-
-        return DF_OVERLAY_PREFIX + fxToken + WM_SPLIT + base;
     }
 
     static float clamp01(float value) {

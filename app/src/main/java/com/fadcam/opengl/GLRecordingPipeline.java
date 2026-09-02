@@ -3649,13 +3649,6 @@ public class GLRecordingPipeline {
                         if (audioMuted) {
                             // Realtime mute: encode silence (track stays continuous).
                             java.util.Arrays.fill(readBuffer, 0, read, (byte) 0);
-                        // SportBestCam Live FX: mix generated PCM before AAC.
-                        com.fadcam.effects.SportEffectsAudioMixer.mixIntoPcm16(
-                                readBuffer,
-                                read,
-                                audioSampleRate,
-                                audioChannelCount
-                        );
 
                         }
                         int offset = 0;

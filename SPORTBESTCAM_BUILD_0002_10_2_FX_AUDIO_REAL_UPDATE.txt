@@ -1,0 +1,55 @@
+SPORTBESTCAM BUILD 0002.10.2
+
+1. AUDIO FX FIX
+Actual main had SportEffectsAudioMixer inside `if (audioMuted)`.
+The apply script moves the mixer after the mute block and before AAC encoding.
+Result:
+- mic ON -> SFX recorded
+- mic MUTE -> SFX recorded
+- ambient mic is ducked ~30% while SFX is active
+
+Generated audio effects:
+Goal Horn, Air Horn, Applause, Referee Whistle, Stadium Cheer, Thunder,
+Drum Roll, Siren, Camera Shutter, Swoosh, plus visual-linked sounds.
+
+2. EXPANDED VISUAL FX
+Existing:
+Hearts, BOOM, Thunder, Goal of the Match, Subscribe, Like, Confetti,
+Stars, Fire, Slides.
+
+New:
+Victory Burst, MVP Moment, Laser Show, Neon Pulse, Spotlight, Speed Lines,
+Rainbow Sweep, Snow/Ice, Bubbles, Smoke Entrance, Champion Crown,
+Camera Flash, Red Card, Yellow Card, GOAL Score Pop, Victory Ribbons.
+
+The quick bar remains one-touch for popular effects; FX opens the full list.
+
+3. REAL UPDATE SYSTEM
+Previous workflow only uploaded GitHub Actions Artifacts.
+0002.10.2 additionally publishes a public GitHub Release after every successful build.
+
+The app:
+- checks GitHub Releases automatically every 12 hours;
+- also has CHECK FOR APP UPDATE in FX;
+- downloads the correct ABI APK;
+- verifies package;
+- verifies versionCode is newer;
+- compares SHA-256 signing certificate with the installed app;
+- only then opens Android installer.
+
+If signatures differ, the app explicitly shows both certificate fingerprints.
+That tells us definitively whether the currently installed APK still uses the old key.
+
+The first build containing this updater still has to be installed manually once.
+After that, future builds can be discovered/downloaded from inside SportBestCam.
+
+Apply:
+cd ~/SportBestCam
+
+unzip -o /storage/emulated/0/Download/SportBestCam_0002.10.2_FX_AUDIO_REAL_UPDATE.zip -d ~/SportBestCam
+
+bash ~/SportBestCam/APPLY_SPORTBESTCAM_0002_10_2.sh
+
+git add .
+git commit -m "SportBestCam 0002.10.2 audio FX visual pack and in-app updater"
+git push origin main

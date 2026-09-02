@@ -468,54 +468,7 @@ public class AboutFragment extends BaseFragment {
 
 
     private void checkForUpdates() {
-        showLoadingDialog(getString(R.string.up_to_date_loading));
-        ExecutorService updateExecutor = Executors.newSingleThreadExecutor();
-        updateExecutor.execute(() -> {
-            try {
-                String currentVersion = getAppVersionForUpdates();
-                com.fadcam.services.UpdateCheckService.UpdateCheckResult result =
-                    com.fadcam.services.UpdateCheckService.checkForUpdate(currentVersion);
-                FLog.d("UpdateCheck", "About check: package="
-                        + com.fadcam.BuildConfig.APPLICATION_ID
-                        + " isBetaApp=" + com.fadcam.BuildConfig.APPLICATION_ID.endsWith(".beta")
-                        + " current=" + currentVersion
-                        + " stable=" + result.stableVersion + "(" + result.hasStable + ")"
-                        + " beta=" + result.betaVersion + "(" + result.hasBeta + ")"
-                        + " pro=" + result.proVersion + "(" + result.hasPro + ")"
-                        + " error=" + result.errorOccurred);
-
-                requireActivity().runOnUiThread(() -> {
-                    dismissLoadingDialog();
-                    if (result.errorOccurred) {
-                        showErrorDialog(getString(R.string.about_update_failed));
-                    } else if (com.fadcam.BuildConfig.APPLICATION_ID.endsWith(".beta")
-                            && result.hasBeta) {
-                        // Beta app: surface the BETA update directly (testers need
-                        // the urgent info without hunting in the sidebar).
-                        BetaUpdateBottomSheet.newInstance(
-                            result.betaVersion, result.betaUrl, currentVersion)
-                            .show(getParentFragmentManager(), "BetaUpdateSheet");
-                    } else if (result.hasStable) {
-                        UpdateAvailableBottomSheet.newInstance(
-                            result.stableVersion, "", result.stableUrl)
-                            .show(getParentFragmentManager(), "UpdateAvailableBottomSheet");
-                    } else {
-                        if (result.hasBeta) {
-                            showUpToDateDialog(getString(R.string.about_beta_available, result.betaVersion),
-                                    result.betaUrl);
-                        } else {
-                            showUpToDateDialog("", null);
-                        }
-                    }
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-                requireActivity().runOnUiThread(() -> {
-                    dismissLoadingDialog();
-                    showErrorDialog(getString(R.string.about_update_failed));
-                });
-            }
-        });
+        com.fadcam.effects.SportBestCamUpdateManager.checkNow(requireActivity());
     }
 
     private void showLoadingDialog(String message) {

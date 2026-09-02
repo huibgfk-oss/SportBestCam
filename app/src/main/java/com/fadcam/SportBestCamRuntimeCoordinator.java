@@ -240,6 +240,7 @@ public final class SportBestCamRuntimeCoordinator implements Application.Activit
     @Override
     public void onActivityResumed(@NonNull Activity activity) {
         resumedActivity = new WeakReference<>(activity);
+        com.fadcam.effects.SportBestCamUpdateManager.onActivityResumed(activity);
         com.fadcam.ui.SportControlsUiPolish.install(activity);
         recordingSessionActive = recordingSessionActive || readAnyRecordingActivePreference();
         applyKeepScreenOn(recordingSessionActive);

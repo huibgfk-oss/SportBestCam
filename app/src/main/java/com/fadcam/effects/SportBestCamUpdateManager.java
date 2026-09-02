@@ -73,6 +73,15 @@ public final class SportBestCamUpdateManager {
             return;
         }
 
+        boolean autoUpdateEnabled =
+                com.fadcam.SharedPreferencesManager.getInstance(activity)
+                        .sharedPreferences
+                        .getBoolean(
+                                com.fadcam.SharedPreferencesManager.PREF_AUTO_UPDATE_CHECK,
+                                true
+                        );
+        if (!autoUpdateEnabled) return;
+
         long now = System.currentTimeMillis();
         long last = prefs.getLong(LAST_CHECK, 0L);
 

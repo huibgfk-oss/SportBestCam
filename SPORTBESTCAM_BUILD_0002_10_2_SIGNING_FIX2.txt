@@ -1,0 +1,28 @@
+SPORTBESTCAM 0002.10.2 — SIGNING FIX2
+
+Evidence from GitHub Actions log:
+- Build: SUCCESSFUL
+- Expected persistent certificate:
+  54:FC:86:C4:87:82:CF:B4:77:37:6E:BE:35:BB:21:E6:EC:25:6C:0C:B6:83:7E:64:1D:2F:C5:BF:A3:47:DB:CD
+- Actual APK signer:
+  7E:68:56:C9:B5:16:93:A9:45:66:DB:8C:F8:70:21:88:A6:66:F8:C1:F5:B2:60:53:AA:C2:03:C2:02:58:B0:31
+
+Root cause:
+The persistent key was restored to GitHub Actions, but app/build.gradle.kts did
+not explicitly bind DefaultDebug to that signing configuration.
+
+FIX2:
+- Workflow writes KEYSTORE_FILE / passwords / alias to local.properties.
+- Build runs with -PsportbestcamStableDebugSigning=true.
+- build.gradle.kts binds debug to signingConfigs.release only when that CI property is set.
+- Local ordinary debug builds remain unchanged.
+- apksigner parser accepts "V2 Signer: certificate SHA-256 digest".
+- Both actual and expected fingerprints are normalized before comparison.
+- beta10.8 is forced.
+
+Expected successful log:
+APK SHA256 certificate:      54:FC:86:C4:...
+Expected stable certificate: 54:FC:86:C4:...
+All SportBestCam APKs use the persistent signing certificate.
+
+No signing key is regenerated or replaced.

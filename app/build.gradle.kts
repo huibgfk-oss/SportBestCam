@@ -67,7 +67,12 @@ android {
         debug {
             applicationIdSuffix = ".beta"
             isDebuggable = true
-            versionNameSuffix = "-beta10.7" // SportBestCam 0002.10.1 Live FX FIX3
+            val stableDebugSigning = project.providers.gradleProperty("sportbestcamStableDebugSigning").orNull == "true"
+            if (stableDebugSigning) {
+                check(releaseSigningConfigValid) { "Stable SportBestCam signing requested but KEYSTORE_FILE is missing." }
+                signingConfig = signingConfigs.getByName("release")
+            }
+            versionNameSuffix = "-beta10.8" // SportBestCam 0002.10.2 stable signing FIX2
             resValue("string", "app_name", "SportBestCam Beta")
         }
         

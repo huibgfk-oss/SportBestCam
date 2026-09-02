@@ -97,6 +97,16 @@ jobs:
           echo "SPORTBESTCAM_CERT_SHA256=$CERT_SHA256" >> "$GITHUB_ENV"
           echo "Signing SHA256: $CERT_SHA256"
 
+          # Force the Android Gradle debug build to use THIS exact persistent key.
+          {
+            echo "KEYSTORE_FILE=$DEBUG_KEYSTORE"
+            echo "KEYSTORE_PASSWORD=android"
+            echo "KEY_ALIAS=androiddebugkey"
+            echo "KEY_PASSWORD=android"
+          } >> local.properties
+
+          echo "Persistent signing config written to local.properties."
+
       - name: Set monotonic CI versionCode
         run: |
           set -euo pipefail
@@ -133,9 +143,21 @@ jobs:
           echo "SPORTBESTCAM_FULL_VERSION=$FULL_VERSION" >> "$GITHUB_ENV"
           echo "Version: $FULL_VERSION"
 
+      - name: Verify stable debug signing configuration
+        run: |
+          set -euo pipefail
+
+          grep -q '^KEYSTORE_FILE=' local.properties
+          grep -q '^KEYSTORE_PASSWORD=android$' local.properties
+          grep -q '^KEY_ALIAS=androiddebugkey$' local.properties
+          grep -q '^KEY_PASSWORD=android$' local.properties
+
+          echo "Gradle stable-debug signing properties: present"
+
       - name: Build SportBestCam debug APK
         run: |
           ./gradlew assembleDefaultDebug \
+            -PsportbestcamStableDebugSigning=true \
             --stacktrace \
             --no-daemon \
             --max-workers=2
@@ -186,18 +208,24 @@ jobs:
 
             "$APKSIGNER" verify --verbose --print-certs "$apk"
 
-            APK_CERT="$(
+            RAW_APK_CERT="$(
               "$APKSIGNER" verify --print-certs "$apk" \
-                | sed -n \
-                    's/^Signer #1 certificate SHA-256 digest: //p' \
-                | head -n1 \
+                | sed -n 's/^.*certificate SHA-256 digest: //p' \
+                | head -n1
+            )"
+
+            APK_CERT="$(
+              printf '%s' "$RAW_APK_CERT" \
+                | tr -d '[:space:]:' \
                 | tr '[:lower:]' '[:upper:]' \
                 | sed 's/../&:/g; s/:$//'
             )"
 
             EXPECTED_CERT="$(
               printf '%s' "${SPORTBESTCAM_CERT_SHA256:-}" \
-                | tr '[:lower:]' '[:upper:]'
+                | tr -d '[:space:]:' \
+                | tr '[:lower:]' '[:upper:]' \
+                | sed 's/../&:/g; s/:$//'
             )"
 
             echo "APK SHA256 certificate:      $APK_CERT"

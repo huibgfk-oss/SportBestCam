@@ -53,3 +53,23 @@ bash ~/SportBestCam/APPLY_SPORTBESTCAM_0002_10_2.sh
 git add .
 git commit -m "SportBestCam 0002.10.2 audio FX visual pack and in-app updater"
 git push origin main
+
+
+FIX1 — APK CERTIFICATE VERIFICATION
+===================================
+The previous workflow used:
+  keytool -printcert -jarfile APK
+
+That can return no certificate for modern Android APK v2/v3 signing.
+The blank value caused a false signing mismatch.
+
+FIX1 uses Android SDK:
+  apksigner verify --verbose --print-certs APK
+
+The SHA-256 signer digest is normalized to colon-separated uppercase and compared
+to SPORTBESTCAM_CERT_SHA256 from the persistent keystore.
+
+This fixes CI verification only; it does NOT regenerate or replace the stable key.
+
+The apply script also explicitly normalizes beta10.x to beta10.8 and prints the
+result before commit.

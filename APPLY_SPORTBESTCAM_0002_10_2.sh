@@ -102,11 +102,16 @@ CALL_LINE="$(
     | cut -d: -f1
 )"
 
-OFFSET_LINE="$(
-  grep -nF 'int offset = 0;' "$A" \
-    | grep -m1 -E '^[0-9]+:' \
+OFFSET_REL="$(
+  tail -n "+$((CALL_LINE + 1))" "$A" \
+    | grep -nF -m1 'int offset = 0;' \
     | cut -d: -f1
 )"
+
+OFFSET_LINE=""
+if [ -n "${OFFSET_REL:-}" ]; then
+  OFFSET_LINE=$((CALL_LINE + OFFSET_REL))
+fi
 
 if [ -z "${CALL_LINE:-}" ] \
     || [ -z "${OFFSET_LINE:-}" ] \
@@ -132,16 +137,17 @@ echo "    GL encoder hook: OK"
 
 echo "3/4 Setez versiunea beta10.8..."
 
-if grep -Eq 'versionNameSuffix = "-beta10\.[0-9]+"' "$G"; then
-  sed -i -E \
-    's#versionNameSuffix = "-beta10\.[0-9]+".*#versionNameSuffix = "-beta10.8" // SportBestCam 0002.10.2 FX + updater#' \
-    "$G"
-fi
+sed -i -E \
+  's#versionNameSuffix[[:space:]]*=[[:space:]]*"-beta10\.[0-9]+".*#versionNameSuffix = "-beta10.8" // SportBestCam 0002.10.2 FX + updater + apksigner FIX1#' \
+  "$G"
 
 grep -Fq 'versionNameSuffix = "-beta10.8"' "$G" || {
   echo "EROARE: nu am putut seta beta10.8."
+  grep -n 'versionNameSuffix' "$G" || true
   exit 1
 }
+
+grep -n 'versionNameSuffix' "$G" | head -n1
 
 echo "4/4 Curăț helper-ele vechi..."
 

@@ -162,6 +162,20 @@ jobs:
         run: |
           set -euo pipefail
 
+          APKSIGNER="$(
+            find "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/build-tools" \
+              -type f -name apksigner \
+              | sort -V \
+              | tail -n1
+          )"
+
+          if [ -z "${APKSIGNER:-}" ] || [ ! -x "$APKSIGNER" ]; then
+            echo "ERROR: Android SDK apksigner was not found."
+            exit 1
+          fi
+
+          echo "Using apksigner: $APKSIGNER"
+
           found=0
 
           for apk in out/*.apk; do
@@ -170,22 +184,40 @@ jobs:
 
             echo "=== $(basename "$apk") ==="
 
+            "$APKSIGNER" verify --verbose --print-certs "$apk"
+
             APK_CERT="$(
-              keytool -printcert -jarfile "$apk" \
-                | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' \
-                | head -n1
+              "$APKSIGNER" verify --print-certs "$apk" \
+                | sed -n \
+                    's/^Signer #1 certificate SHA-256 digest: //p' \
+                | head -n1 \
+                | tr '[:lower:]' '[:upper:]' \
+                | sed 's/../&:/g; s/:$//'
             )"
 
-            echo "APK SHA256 certificate: $APK_CERT"
+            EXPECTED_CERT="$(
+              printf '%s' "${SPORTBESTCAM_CERT_SHA256:-}" \
+                | tr '[:lower:]' '[:upper:]'
+            )"
 
-            if [ -n "${SPORTBESTCAM_CERT_SHA256:-}" ] \
-                && [ "$APK_CERT" != "$SPORTBESTCAM_CERT_SHA256" ]; then
+            echo "APK SHA256 certificate:      $APK_CERT"
+            echo "Expected stable certificate: $EXPECTED_CERT"
+
+            if [ -z "$APK_CERT" ]; then
+              echo "ERROR: apksigner could not extract the APK signing certificate."
+              exit 1
+            fi
+
+            if [ -n "$EXPECTED_CERT" ] \
+                && [ "$APK_CERT" != "$EXPECTED_CERT" ]; then
               echo "ERROR: APK signing certificate differs from persistent key."
               exit 1
             fi
           done
 
           [ "$found" -eq 1 ]
+
+          echo "All SportBestCam APKs use the persistent signing certificate."
 
       - name: Upload CI artifact
         uses: actions/upload-artifact@v4

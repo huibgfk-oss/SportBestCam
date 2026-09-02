@@ -90,7 +90,7 @@ public final class SportEffectsState {
         }
 
         if (effect.audioKind != null && !effect.audioKind.isEmpty()) {
-            SportEffectsAudioMixer.enqueue(effect.audioKind, now);
+            SportEffectsAudioMixer.trigger(effect.audioKind, now);
         }
     }
 

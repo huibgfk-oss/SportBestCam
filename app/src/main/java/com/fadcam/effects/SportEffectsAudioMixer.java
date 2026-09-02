@@ -58,6 +58,144 @@ public final class SportEffectsAudioMixer {
         }
     }
 
+    /**
+     * Trigger one SFX in both destinations:
+     * 1) digital PCM queue for the recorded AAC track;
+     * 2) local AudioTrack monitor so the operator hears the effect immediately.
+     */
+    public static void trigger(String kind, long triggerAtMs) {
+        enqueue(kind, triggerAtMs);
+        playMonitor(kind);
+    }
+
+    private static void playMonitor(String kind) {
+        if (kind == null || kind.trim().isEmpty()) return;
+
+        final String safeKind = kind.trim();
+
+        new Thread(() -> {
+            android.media.AudioTrack track = null;
+
+            try {
+                final int sampleRate = 48000;
+                Voice voice = new Voice(safeKind, sampleRate);
+                int frames = voice.totalFrames;
+                byte[] pcm = new byte[frames * 2];
+
+                for (int i = 0; i < frames; i++) {
+                    double sample = sampleVoice(voice);
+                    voice.frame++;
+
+                    // Monitor is intentionally lower than the digitally recorded SFX
+                    // to reduce acoustic re-capture by the microphone.
+                    int value = (int) Math.round(
+                            Math.max(-1.0, Math.min(1.0, sample))
+                                    * 32767.0
+                                    * 0.48
+                    );
+                    value = Math.max(-32768, Math.min(32767, value));
+
+                    int p = i * 2;
+                    pcm[p] = (byte) (value & 0xff);
+                    pcm[p + 1] = (byte) ((value >> 8) & 0xff);
+                }
+
+                android.media.AudioAttributes attributes =
+                        new android.media.AudioAttributes.Builder()
+                                .setUsage(
+                                        android.media.AudioAttributes
+                                                .USAGE_ASSISTANCE_SONIFICATION
+                                )
+                                .setContentType(
+                                        android.media.AudioAttributes
+                                                .CONTENT_TYPE_SONIFICATION
+                                )
+                                .build();
+
+                android.media.AudioFormat format =
+                        new android.media.AudioFormat.Builder()
+                                .setEncoding(
+                                        android.media.AudioFormat
+                                                .ENCODING_PCM_16BIT
+                                )
+                                .setSampleRate(sampleRate)
+                                .setChannelMask(
+                                        android.media.AudioFormat
+                                                .CHANNEL_OUT_MONO
+                                )
+                                .build();
+
+                track = new android.media.AudioTrack.Builder()
+                        .setAudioAttributes(attributes)
+                        .setAudioFormat(format)
+                        .setTransferMode(
+                                android.media.AudioTrack.MODE_STATIC
+                        )
+                        .setBufferSizeInBytes(pcm.length)
+                        .build();
+
+                if (android.os.Build.VERSION.SDK_INT
+                        >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                    track.setVolume(0.72f);
+                }
+
+                int written = track.write(
+                        pcm,
+                        0,
+                        pcm.length,
+                        android.media.AudioTrack.WRITE_BLOCKING
+                );
+
+                if (written <= 0) {
+                    android.util.Log.w(
+                            "SportBestCamFX",
+                            "SFX monitor write failed for " + safeKind
+                    );
+                    return;
+                }
+
+                android.util.Log.i(
+                        "SportBestCamFX",
+                        "SFX monitor PLAY: " + safeKind
+                                + " bytes=" + written
+                );
+
+                track.play();
+
+                long sleepMs = Math.max(
+                        250L,
+                        (long) (
+                                durationSeconds(safeKind) * 1000.0
+                        ) + 180L
+                );
+
+                try {
+                    Thread.sleep(sleepMs);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            } catch (Throwable t) {
+                android.util.Log.e(
+                        "SportBestCamFX",
+                        "SFX monitor failed: " + safeKind,
+                        t
+                );
+            } finally {
+                if (track != null) {
+                    try {
+                        track.stop();
+                    } catch (Throwable ignored) {
+                    }
+
+                    try {
+                        track.release();
+                    } catch (Throwable ignored) {
+                    }
+                }
+            }
+        }, "SportBestCam-SFX-" + safeKind).start();
+    }
+
     public static void mixIntoPcm16(
             byte[] pcm,
             int byteCount,
@@ -78,6 +216,12 @@ public final class SportEffectsAudioMixer {
                 Pending pending = PENDING.removeFirst();
                 if (now - pending.atMs <= MAX_PENDING_AGE_MS) {
                     VOICES.add(new Voice(pending.kind, sampleRate));
+                    android.util.Log.i(
+                            "SportBestCamFX",
+                            "SFX RECORDER PCM: " + pending.kind
+                                    + " rate=" + sampleRate
+                                    + " channels=" + channels
+                    );
                 }
             }
 

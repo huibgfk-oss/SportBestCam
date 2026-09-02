@@ -1,0 +1,30 @@
+SPORTBESTCAM 0002.10.3 — AUDIO FX REAL FIX
+
+Problem confirmed in current main:
+SportEffectsState queued SFX into SportEffectsAudioMixer, but
+GLRecordingPipeline did not call mixIntoPcm16() at all before AAC.
+
+Fix:
+1. Inserts exactly one SportEffectsAudioMixer.mixIntoPcm16() call after the
+   audioMuted block and before `int offset = 0` / AAC encoder input.
+2. SportEffectsAudioMixer.trigger() now also plays a local AudioTrack monitor.
+   Therefore the operator hears the SFX immediately when tapping it.
+3. The same SFX remains queued for digital PCM mixing into the recorded MP4.
+4. Monitor playback is lower than recorded SFX to reduce microphone re-capture.
+5. Adds Logcat diagnostics:
+   - SFX monitor PLAY
+   - SFX RECORDER PCM
+6. Debug versionNameSuffix -> beta10.9.
+
+Important:
+If recording audio is disabled completely, there is no AAC track to mix into.
+The local monitor will still be audible.
+
+Apply:
+cd ~/SportBestCam
+unzip -o /storage/emulated/0/Download/SportBestCam_0002.10.3_AUDIO_FIX.zip -d ~/SportBestCam
+bash ~/SportBestCam/APPLY_SPORTBESTCAM_0002_10_3_AUDIO_FIX.sh
+
+git add .
+git commit -m "SportBestCam 0002.10.3 fix audible and recorded SFX"
+git push origin main

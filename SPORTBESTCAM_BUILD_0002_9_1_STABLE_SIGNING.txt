@@ -1,0 +1,8 @@
+SportBestCam BUILD 0002.9.1
+
+- persistent signing key restored in GitHub Actions
+- automatic OpenSSL one-time setup in Termux
+- stable local keystore backup
+- monotonic CI versionCode retained
+- final APK signing certificate verification
+- no applicationId/package/flavor change

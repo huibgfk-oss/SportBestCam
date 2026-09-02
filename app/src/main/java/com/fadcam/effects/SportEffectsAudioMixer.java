@@ -91,7 +91,7 @@ public final class SportEffectsAudioMixer {
                     int value = (int) Math.round(
                             Math.max(-1.0, Math.min(1.0, sample))
                                     * 32767.0
-                                    * 0.48
+                                    * 0.72
                     );
                     value = Math.max(-32768, Math.min(32767, value));
 
@@ -104,11 +104,11 @@ public final class SportEffectsAudioMixer {
                         new android.media.AudioAttributes.Builder()
                                 .setUsage(
                                         android.media.AudioAttributes
-                                                .USAGE_ASSISTANCE_SONIFICATION
+                                                .USAGE_MEDIA
                                 )
                                 .setContentType(
                                         android.media.AudioAttributes
-                                                .CONTENT_TYPE_SONIFICATION
+                                                .CONTENT_TYPE_MUSIC
                                 )
                                 .build();
 
@@ -136,7 +136,7 @@ public final class SportEffectsAudioMixer {
 
                 if (android.os.Build.VERSION.SDK_INT
                         >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                    track.setVolume(0.72f);
+                    track.setVolume(1.0f);
                 }
 
                 int written = track.write(
@@ -161,6 +161,14 @@ public final class SportEffectsAudioMixer {
                 );
 
                 track.play();
+
+                android.util.Log.i(
+                        "SportBestCamFX",
+                        "SFX monitor state="
+                                + track.getPlayState()
+                                + " session="
+                                + track.getAudioSessionId()
+                );
 
                 long sleepMs = Math.max(
                         250L,
@@ -364,7 +372,7 @@ public final class SportEffectsAudioMixer {
                     1.0,
                     Math.max(0.0, (duration - t) / 0.32)
             );
-            double crowd = nextNoise(v) * 0.48;
+            double crowd = nextNoise(v) * 0.72;
             double chant =
                     0.28 * Math.sin(2.0 * Math.PI * 176.0 * t)
                     + 0.22 * Math.sin(2.0 * Math.PI * 235.0 * t);

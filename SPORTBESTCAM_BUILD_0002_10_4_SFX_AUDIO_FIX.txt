@@ -1,0 +1,23 @@
+SPORTBESTCAM 0002.10.4 — SFX AUDIO FIX
+
+Confirmed from current public main:
+GLRecordingPipeline has no SportEffectsAudioMixer.mixIntoPcm16() call in the
+AudioRecord -> AAC path. The code goes directly from audioMuted to int offset = 0.
+
+This fix:
+- inserts exactly one mixer call after the audioMuted block and before AAC input;
+- changes the audible monitor from Android system/sonification volume to MEDIA volume;
+- raises monitor PCM amplitude to 0.72 and AudioTrack volume to 1.0;
+- keeps the existing digital SFX queue;
+- sets debug versionNameSuffix to beta10.9.
+
+If Record Audio is globally disabled, no AAC track exists in the MP4. In that
+case the live SFX monitor still plays, but the MP4 cannot contain SFX audio.
+
+Apply:
+cd ~/SportBestCam
+unzip -o /storage/emulated/0/Download/SportBestCam_0002.10.4_SFX_AUDIO_FIX.zip -d ~/SportBestCam
+bash ~/SportBestCam/APPLY_SPORTBESTCAM_0002_10_4_SFX_AUDIO.sh
+git add .
+git commit -m "SportBestCam 0002.10.4 fix SFX audio path"
+git push origin main

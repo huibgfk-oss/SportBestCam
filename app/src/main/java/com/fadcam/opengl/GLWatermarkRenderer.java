@@ -787,6 +787,18 @@ public class GLWatermarkRenderer {
                 }
 
                 drawWatermark();
+                // SportBestCam Live FX: composite directly on the encoder EGL
+                // surface before the frame is handed to MediaCodec.
+                com.fadcam.effects.SportEffectsGlEncoderBridge.drawIfActive(
+                        watermarkProgram,
+                        watermarkPositionHandle,
+                        watermarkTexCoordHandle,
+                        watermarkSamplerHandle,
+                        forensicsOverlayRectBuffer,
+                        watermarkTexCoordBuffer,
+                        encoderWidth > 0 ? encoderWidth : videoWidth,
+                        encoderHeight > 0 ? encoderHeight : videoHeight
+                );
 
                 // Swap buffers to complete the frame
                 if (!EGL14.eglSwapBuffers(eglDisplay, eglSurface)) {

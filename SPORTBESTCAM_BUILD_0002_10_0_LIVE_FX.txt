@@ -100,3 +100,18 @@ ZIP-ul conține fișierele noi/finale direct în structura repo-ului, iar cele
 trei modificări punctuale din fișierele mari sunt aplicate printr-un diff
 verificat cu `git apply --check`, pentru a nu suprascrie accidental alte
 schimbări din encoder.
+
+
+FIX1 — DIFF REPAIR
+==================
+Corectate două headere de hunk:
+- GLRecordingPipeline audio:
+  @@ -3425,7 +3428,11 @@
+- app/build.gradle.kts:
+  @@ -62,6 +62,6 @@
+
+Validare efectuată:
+- număr linii pentru fiecare hunk: OK
+- parser `git apply --numstat`: OK
+
+Eroarea `corrupt patch` provenea din ZIP-ul inițial, nu din repository.

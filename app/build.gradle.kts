@@ -67,7 +67,7 @@ android {
         debug {
             applicationIdSuffix = ".beta"
             isDebuggable = true
-            versionNameSuffix = "-beta10.6" // Increment the beta version suffix for each release. Use `beta1` for the first beta release, then `beta2`, etc.
+            versionNameSuffix = "-beta10.7" // SportBestCam 0002.10.1 Live FX FIX3
             resValue("string", "app_name", "SportBestCam Beta")
         }
         

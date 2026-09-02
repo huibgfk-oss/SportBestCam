@@ -4,8 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 
-import com.fadcam.effects.SportEffectsState;
-
 import java.util.Locale;
 
 /** Builds the live handball scoreboard line that is burned into recorded video. */
@@ -100,9 +98,9 @@ public final class HandballVideoOverlay {
             result = base.isEmpty() ? overlay : base + "\n" + overlay;
         }
 
-        // Live FX are available in both Match recording and Simple video.
-        // Existing Digital Forensics payload is preserved by SportEffectsState.
-        return SportEffectsState.wrapWatermark(context, result);
+        // Live FX are encoded by their own GL layer. Do not tunnel them through
+        // watermark/Digital Forensics payloads.
+        return result;
     }
 
     private static String clean(String s, String fallback) {

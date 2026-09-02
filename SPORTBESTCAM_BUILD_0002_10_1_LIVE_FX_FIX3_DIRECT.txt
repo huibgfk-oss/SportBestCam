@@ -1,0 +1,22 @@
+SportBestCam 0002.10.1 Live FX FIX3 DIRECT
+
+No .diff files. No git apply.
+
+The script discovers the actual encoder/audio anchors in the local source:
+- first encoder drawWatermark(), verified against eglSwapBuffers()
+- PCM mute Arrays.fill(...), verified against int offset = 0
+
+Direct files included:
+- SportEffects*.java
+- SportEffectsGlEncoderBridge.java
+- fixed SportEffectsController.java
+- fixed HandballVideoOverlay.java
+- debug AndroidManifest.xml
+
+Apply:
+cd ~/SportBestCam
+unzip -o /storage/emulated/0/Download/SportBestCam_0002.10.1_LiveFX_FIX3_DIRECT.zip -d ~/SportBestCam
+bash ~/SportBestCam/APPLY_SPORTBESTCAM_0002_10_1_FIX3_DIRECT.sh
+git add .
+git commit -m "SportBestCam 0002.10.1 FIX3 direct Live FX encoder"
+git push origin main

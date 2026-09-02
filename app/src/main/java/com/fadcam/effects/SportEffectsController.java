@@ -22,6 +22,7 @@ public final class SportEffectsController {
     private FrameLayout host;
     private SportEffectsOverlayView overlay;
     private LinearLayout drawer;
+    private ScrollView drawerPanel;
 
     private SportEffectsController(Activity activity, FrameLayout root) {
         this.activity = activity;
@@ -108,18 +109,22 @@ public final class SportEffectsController {
         quick.setBackground(roundRect(Color.argb(138, 6, 12, 22), dp(18)));
 
         addQuickButton(quick, "♥", SportEffectsState.Effect.HEARTS);
-        addQuickButton(quick, "B", SportEffectsState.Effect.BOOM);
+        addQuickButton(quick, "💥", SportEffectsState.Effect.BOOM);
         addQuickButton(quick, "⚡", SportEffectsState.Effect.THUNDER);
-        addQuickButton(quick, "G", SportEffectsState.Effect.GOAL_MATCH);
+        addQuickButton(quick, "🏆", SportEffectsState.Effect.GOAL_MATCH);
         addQuickButton(quick, "📣", SportEffectsState.Effect.GOAL_HORN);
 
         TextView more = smallButton("FX");
         more.setContentDescription("Open Live Effects");
         more.setOnClickListener(v -> {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-            drawer.setVisibility(
-                    drawer.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE
-            );
+            if (drawerPanel != null) {
+                drawerPanel.setVisibility(
+                        drawerPanel.getVisibility() == View.VISIBLE
+                                ? View.GONE
+                                : View.VISIBLE
+                );
+            }
         });
         quick.addView(more);
 
@@ -148,10 +153,11 @@ public final class SportEffectsController {
 
     private void addDrawer() {
         ScrollView scroll = new ScrollView(activity);
+        drawerPanel = scroll;
         scroll.setFillViewport(false);
         scroll.setVerticalScrollBarEnabled(true);
-        scroll.setBackground(roundRect(Color.argb(230, 8, 15, 28), dp(18)));
-        scroll.setPadding(dp(8), dp(8), dp(8), dp(8));
+        scroll.setBackground(roundRect(Color.argb(248, 8, 15, 28), dp(16)));
+        scroll.setPadding(dp(6), dp(6), dp(6), dp(6));
 
         drawer = new LinearLayout(activity);
         drawer.setOrientation(LinearLayout.VERTICAL);
@@ -200,16 +206,23 @@ public final class SportEffectsController {
         drawer.addView(clear, rowParams());
 
         TextView close = actionButton("CLOSE");
-        close.setOnClickListener(v -> drawer.setVisibility(View.GONE));
+        close.setOnClickListener(v -> {
+            if (drawerPanel != null) drawerPanel.setVisibility(View.GONE);
+        });
         drawer.addView(close, rowParams());
 
+        int screenWidth = activity.getResources().getDisplayMetrics().widthPixels;
+        int screenHeight = activity.getResources().getDisplayMetrics().heightPixels;
+        int panelWidth = Math.min(dp(180), Math.round(screenWidth * 0.28f));
+        int panelHeight = Math.min(dp(430), Math.round(screenHeight * 0.72f));
+
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                dp(250),
-                Math.min(dp(540), activity.getResources().getDisplayMetrics().heightPixels - dp(32)),
+                panelWidth,
+                panelHeight,
                 Gravity.END | Gravity.CENTER_VERTICAL
         );
-        params.rightMargin = dp(58);
-        drawer.setVisibility(View.GONE);
+        params.rightMargin = dp(56);
+        scroll.setVisibility(View.GONE);
         host.addView(scroll, params);
     }
 
@@ -233,6 +246,10 @@ public final class SportEffectsController {
     private void trigger(SportEffectsState.Effect effect) {
         SportEffectsState.trigger(effect);
         overlay.kick();
+
+        if (drawerPanel != null && drawerPanel.getVisibility() == View.VISIBLE) {
+            drawerPanel.setVisibility(View.GONE);
+        }
 
         activity.getSharedPreferences(PREFS, Activity.MODE_PRIVATE)
                 .edit()
